@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT-0
 import cfnlint.helpers
 from cfnlint.helpers import RESOURCE_SPECS
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-
+from cfnlint.schema_manager import PROVIDER_SCHEMA_MANAGER
 
 class ValueRefGetAtt(CloudFormationLintRule):
     """Check if Resource Properties are correct"""
@@ -14,17 +14,6 @@ class ValueRefGetAtt(CloudFormationLintRule):
     shortdesc = "Check values of properties for valid Refs and GetAtts"
     description = "Checks resource properties for Ref and GetAtt values"
     tags = ["resources", "ref", "getatt"]
-
-    def initialize(self, cfn):
-        """Initialize the rule"""
-        for resource_type_spec in RESOURCE_SPECS.get(cfn.regions[0]).get(
-            "ResourceTypes"
-        ):
-            self.resource_property_types.append(resource_type_spec)
-        for property_type_spec in RESOURCE_SPECS.get(cfn.regions[0]).get(
-            "PropertyTypes"
-        ):
-            self.resource_sub_property_types.append(property_type_spec)
 
     def is_value_a_list(self, path, property_name):
         """
@@ -301,3 +290,8 @@ class ValueRefGetAtt(CloudFormationLintRule):
         matches.extend(self.check(cfn, properties, specs, resource_specs, path))
 
         return matches
+
+    def match(self, cfn):
+        print(PROVIDER_SCHEMA_MANAGER.all_getatts(cfn.regions[0]))
+
+    

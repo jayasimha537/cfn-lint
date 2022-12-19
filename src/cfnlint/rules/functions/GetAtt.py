@@ -25,11 +25,6 @@ class GetAtt(CloudFormationLintRule):
         self.propertytypes = []
         self.resourcetypes = []
 
-    def initialize(self, cfn):
-        resourcespecs = cfnlint.helpers.RESOURCE_SPECS[cfn.regions[0]]
-        self.resourcetypes = resourcespecs["ResourceTypes"]
-        self.propertytypes = resourcespecs["PropertyTypes"]
-
     def match(self, cfn):
         matches = []
 

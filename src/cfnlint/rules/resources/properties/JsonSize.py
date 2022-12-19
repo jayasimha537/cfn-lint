@@ -20,16 +20,6 @@ class JsonSize(CloudFormationLintRule):
     source_url = "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html"
     tags = ["resources", "limits", "json"]
 
-    def initialize(self, cfn):
-        """Initialize the rule"""
-        for resource_type_spec in RESOURCE_SPECS.get(cfn.regions[0]).get(
-            "ResourceTypes"
-        ):
-            self.resource_property_types.append(resource_type_spec)
-        for property_type_spec in RESOURCE_SPECS.get(cfn.regions[0]).get(
-            "PropertyTypes"
-        ):
-            self.resource_sub_property_types.append(property_type_spec)
 
     def _serialize_date(self, obj):
         if isinstance(obj, datetime.date):

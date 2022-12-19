@@ -17,16 +17,6 @@ class AllowedValue(CloudFormationLintRule):
     source_url = "https://github.com/aws-cloudformation/cfn-python-lint/blob/main/docs/cfn-resource-specification.md#allowedvalue"
     tags = ["parameters", "resources", "property", "allowed value"]
 
-    def initialize(self, cfn):
-        """Initialize the rule"""
-        for resource_type_spec in RESOURCE_SPECS.get(cfn.regions[0]).get(
-            "ResourceTypes"
-        ):
-            self.resource_property_types.append(resource_type_spec)
-        for property_type_spec in RESOURCE_SPECS.get(cfn.regions[0]).get(
-            "PropertyTypes"
-        ):
-            self.resource_sub_property_types.append(property_type_spec)
 
     def check_value_ref(self, value, path, **kwargs):
         """Check Ref"""

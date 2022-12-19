@@ -22,7 +22,6 @@ from urllib.request import Request, urlopen, urlretrieve
 
 import jsonpatch
 
-from cfnlint.data import CloudSpecs
 from cfnlint.decode.node import dict_node, list_node, str_node
 
 LOGGER = logging.getLogger(__name__)
@@ -385,8 +384,13 @@ def load_resource(package, filename="us-east-1.json"):
         )
     return json.loads(pkg_resources.read_text(package, filename, encoding="utf-8"))
 
-
-RESOURCE_SPECS: Dict[str, dict] = {}
+RESOURCE_SPECS: Dict[str, dict] = {
+    'us-east-1': {
+        'IntrinsicTypes': {},
+        'ResourceTypes': {},
+        'PropertyTypes': {},
+    }
+}
 REGISTRY_SCHEMAS: List[dict] = []
 
 
@@ -406,51 +410,7 @@ def merge_spec(source, destination):
 def set_specs(override_spec_data):
     """Override Resource Specs"""
 
-    excludes = []
-    includes = []
-
-    # Extract the exclude list from the override file
-    if "ExcludeResourceTypes" in override_spec_data:
-        excludes = override_spec_data.pop("ExcludeResourceTypes")
-    if "IncludeResourceTypes" in override_spec_data:
-        includes = override_spec_data.pop("IncludeResourceTypes")
-
-    for region, spec in RESOURCE_SPECS.items():
-
-        # Merge override spec file into the AWS Resource specification
-        if override_spec_data:
-            RESOURCE_SPECS[region] = merge_spec(override_spec_data, spec)
-
-        # Grab a list of all resources
-        all_resources = list(RESOURCE_SPECS[region]["ResourceTypes"].keys())[:]
-
-        resources = []
-
-        # Remove unsupported resource using includes
-        if includes:
-            for include in includes:
-                regex = re.compile(include.replace("*", "(.*)") + "$")
-                matches = [
-                    string for string in all_resources if re.match(regex, string)
-                ]
-
-                resources.extend(matches)
-        else:
-            resources = all_resources[:]
-
-        # Remove unsupported resources using the excludes
-        if excludes:
-            for exclude in excludes:
-                regex = re.compile(exclude.replace("*", "(.*)") + "$")
-                matches = [string for string in resources if re.match(regex, string)]
-
-                for match in matches:
-                    resources.remove(match)
-
-        # Remove unsupported resources
-        for resource in all_resources:
-            if resource not in resources:
-                del RESOURCE_SPECS[region]["ResourceTypes"][resource]
+    LOGGER.warning("This feature does not work with schemas")
 
 
 def is_custom_resource(resource_type):
@@ -471,30 +431,6 @@ def bool_compare(first, second):
         second = bool(second.lower() in ["true", "True"])
 
     return first is second
-
-
-def initialize_specs():
-    """Reload Resource Specs"""
-
-    def load_region(region):
-        spec = load_resource(CloudSpecs, filename=(f"{region}.json"))
-
-        for section, section_values in spec.items():
-            if section in ["ResourceTypes", "PropertyTypes", "ValueTypes"]:
-                for key, value in section_values.items():
-                    if value == "CACHED" and RESOURCE_SPECS["us-east-1"][section].get(
-                        key
-                    ):
-                        spec[section][key] = RESOURCE_SPECS["us-east-1"][section][key]
-        return spec
-
-    RESOURCE_SPECS["us-east-1"] = load_region("us-east-1")
-    for region in REGIONS:
-        if region != "us-east-1":
-            RESOURCE_SPECS[region] = load_region(region)
-
-
-initialize_specs()
 
 
 def format_json_string(json_string):

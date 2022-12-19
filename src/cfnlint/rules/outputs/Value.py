@@ -20,10 +20,6 @@ class Value(CloudFormationLintRule):
         super().__init__()
         self.resourcetypes = []
 
-    def initialize(self, cfn):
-        resourcespecs = RESOURCE_SPECS[cfn.regions[0]]
-        self.resourcetypes = resourcespecs["ResourceTypes"]
-
     def match(self, cfn):
         matches = []
 

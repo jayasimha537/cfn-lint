@@ -5,9 +5,10 @@ import logging
 import multiprocessing
 import os
 import zipfile
-from typing import Any, Dict
-
+from typing import Any, Dict, List, Union
+from pkg_resources import resource_listdir
 import jsonpatch
+from cfnlint.schema import Schema
 
 from cfnlint.helpers import (
     REGIONS,
@@ -22,11 +23,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ProviderSchemaManager:
-    _schemas: Dict[str, Dict[str, dict]] = {}
+    _schemas: Dict[str, Schema] = {}
     _provider_schema_modules: Dict[str, Any] = {}
+    _cache: Dict[str, Union[List, str]] = {}
 
     def __init__(self) -> None:
-        self._schemas: Dict[str, Dict[str, dict]] = {}
+        self._schemas: Dict[str, Schema] = {}
 
         self._patch_path = os.path.join(
             os.path.dirname(__file__),
@@ -39,8 +41,12 @@ class ProviderSchemaManager:
             "ProviderSchemas",
         )
 
+        self._cache["ResourceTypes"] = {}
+        self._cache["GetAtts"] = {}
         for region in REGIONS:
             self._schemas[region] = {}
+            self._cache["ResourceTypes"][region] = []
+            self._cache["GetAtts"][region] = {}
 
     def get_resource_schema(self, region: str, resource_type: str) -> Dict:
         """Get the provider resource shcema and cache it to speed up future lookups
@@ -59,11 +65,39 @@ class ProviderSchemaManager:
                 f"cfnlint.data.ProviderSchemas.{region}", fromlist=[""]
             )
             # load the schema
-            self._schemas[region][resource_type] = load_resource(
+            self._schemas[region][resource_type] = Schema(load_resource(
                 self._provider_schema_modules[region], filename=(f"{rt}.json")
-            )
+            ))
             return self._schemas[region][resource_type]
         return schema
+
+    def get_resource_types(self, region: str) -> List[str]:
+        """Get the resource types for a region
+
+        Args:
+            region (str): the region in which to get the resource types for
+        Returns:
+            List[str]: returns a list of resource types
+        """
+
+        if not self._cache["ResourceTypes"][region]:
+            if region not in self._provider_schema_modules:
+                self._provider_schema_modules[region] = __import__(
+                    f"cfnlint.data.ProviderSchemas.{region}", fromlist=[""]
+                )
+            for filename in resource_listdir(
+                "cfnlint", resource_name=f"data/ProviderSchemas/{region}"
+            ):
+                if not filename.endswith(".json"):
+                    continue
+                schema = load_resource(
+                    self._provider_schema_modules[region], filename=(filename)
+                )
+                resource_type = schema.get("typeName")
+                self._schemas[region][resource_type] = Schema(schema)
+                self._cache["ResourceTypes"][region].append(resource_type)
+
+        return self._cache["ResourceTypes"][region]
 
     def update(self, force: bool) -> None:
         self._update_provider_schema("us-east-1", force=force)
@@ -166,6 +200,13 @@ class ProviderSchemaManager:
                     content = apply_json_patch(content, all_patches, region)
 
         return content
+
+    def all_getatts(self, region: str) -> Dict[str, Dict]:
+        if not self._cache["GetAtts"][region]:
+            for schema in self._schemas[region].values():
+                get_atts = schema.get_atts()
+
+        return self._cache["GetAtts"][region]
 
     def update_schemas(self, force: bool):
         pass

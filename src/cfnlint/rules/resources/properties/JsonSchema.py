@@ -68,7 +68,6 @@ class JsonSchema(CloudFormationLintRule):
         super().__init__()
         self.cfn = {}
         self.rules = RuleSet()
-        self.config_definition = {"experimental": {"default": False, "type": "boolean"}}
         self.validator = None
 
     # pylint: disable=unused-argument
@@ -140,19 +139,6 @@ class JsonSchema(CloudFormationLintRule):
 
         return matches
 
-    def clense_schema(self, schema):
-        """Taking a valid schema we will modify it for additional CloudFormation type things"""
-        for ro_prop in schema.get("readOnlyProperties", []):
-            sub_schema = schema
-            for p in ro_prop.split("/")[1:-1]:
-                sub_schema = sub_schema.get(p)
-                if sub_schema is None:
-                    break
-            if sub_schema is not None:
-                if sub_schema.get(ro_prop.split("/")[-1]) is not None:
-                    del sub_schema[ro_prop.split("/")[-1]]
-
-        return schema
 
     def _setup_validator(self, cfn: Template):
         validators: Dict[str, Callable[[Any, Any, Any, Any], Any]] = {
@@ -203,9 +189,6 @@ class JsonSchema(CloudFormationLintRule):
                             )
                         )
 
-        if not self.config.get("experimental"):
-            return matches
-
         self._setup_validator(cfn)
 
         for n, values in cfn.get_resources().items():
@@ -217,13 +200,12 @@ class JsonSchema(CloudFormationLintRule):
                 for region in cfn.regions:
                     schema = {}
                     try:
-                        schema = PROVIDER_SCHEMA_MANAGER.get_resource_schema(region, t)
+                        schema = PROVIDER_SCHEMA_MANAGER.get_resource_schema(region, t).json_schema()
                     except FileNotFoundError as e:
                         if e.args[0] == region:
                             LOGGER.info("No specs for region %s", region)
                             continue
                     if schema:
-                        schema = self.clense_schema(deepcopy(schema))
                         cfn_validator = self.validator(schema)
                         path = ["Resources", n, "Properties"]
                         for scenario in cfn.get_object_without_nested_conditions(
