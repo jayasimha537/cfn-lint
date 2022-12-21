@@ -3,8 +3,7 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
 import json
-
-from cfnlint.helpers import RESOURCE_SPECS
+import warnings
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 
 
@@ -107,7 +106,7 @@ class AllowedValue(CloudFormationLintRule):
                                 prop,
                                 p_path,
                                 check_ref=self.check_value_ref,
-                                value_specs=RESOURCE_SPECS.get(cfn.regions[0])
+                                value_specs={}.get(cfn.regions[0])
                                 .get("ValueTypes")
                                 .get(value_type, {}),
                                 cfn=cfn,
@@ -122,32 +121,13 @@ class AllowedValue(CloudFormationLintRule):
         """Match for sub properties"""
         matches = []
 
-        specs = (
-            RESOURCE_SPECS.get(cfn.regions[0])
-            .get("PropertyTypes")
-            .get(property_type, {})
-            .get("Properties", {})
-        )
-        property_specs = (
-            RESOURCE_SPECS.get(cfn.regions[0]).get("PropertyTypes").get(property_type)
-        )
-        matches.extend(self.check(cfn, properties, specs, property_specs, path))
-
         return matches
 
     def match_resource_properties(self, properties, resource_type, path, cfn):
         """Check CloudFormation Properties"""
         matches = []
 
-        specs = (
-            RESOURCE_SPECS.get(cfn.regions[0])
-            .get("ResourceTypes")
-            .get(resource_type, {})
-            .get("Properties", {})
-        )
-        resource_specs = (
-            RESOURCE_SPECS.get(cfn.regions[0]).get("ResourceTypes").get(resource_type)
-        )
-        matches.extend(self.check(cfn, properties, specs, resource_specs, path))
-
         return matches
+
+    def match(self, cfn):
+        warnings.warn("This rule needs to be rewritten", RuntimeWarning)

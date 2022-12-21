@@ -3,7 +3,7 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
 import re
-
+import warnings
 import cfnlint.helpers
 from cfnlint.data import AdditionalSpecs
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
@@ -148,3 +148,6 @@ class BasedOnValue(CloudFormationLintRule):
         matches.extend(self._check_obj(properties, specs, path, cfn))
 
         return matches
+
+    def match(self, cfn):
+        warnings.warn("This rule needs to be rewritten", RuntimeWarning)

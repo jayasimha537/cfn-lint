@@ -4,8 +4,7 @@ SPDX-License-Identifier: MIT-0
 """
 import hashlib
 import json
-
-from cfnlint.helpers import RESOURCE_SPECS
+import warnings
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 
 
@@ -23,11 +22,11 @@ class ListDuplicatesAllowed(CloudFormationLintRule):
 
     def initialize(self, cfn):
         """Initialize the rule"""
-        for resource_type_spec in RESOURCE_SPECS.get(cfn.regions[0]).get(
+        for resource_type_spec in {}.get(cfn.regions[0]).get(
             "ResourceTypes"
         ):
             self.resource_property_types.append(resource_type_spec)
-        for property_type_spec in RESOURCE_SPECS.get(cfn.regions[0]).get(
+        for property_type_spec in {}.get(cfn.regions[0]).get(
             "PropertyTypes"
         ):
             self.resource_sub_property_types.append(property_type_spec)
@@ -111,7 +110,7 @@ class ListDuplicatesAllowed(CloudFormationLintRule):
         matches = []
 
         specs = (
-            RESOURCE_SPECS.get(cfn.regions[0])
+            {}.get(cfn.regions[0])
             .get("PropertyTypes")
             .get(property_type, {})
             .get("Properties", {})
@@ -125,7 +124,7 @@ class ListDuplicatesAllowed(CloudFormationLintRule):
         matches = []
 
         specs = (
-            RESOURCE_SPECS.get(cfn.regions[0])
+            {}.get(cfn.regions[0])
             .get("ResourceTypes")
             .get(resource_type, {})
             .get("Properties", {})
@@ -133,3 +132,6 @@ class ListDuplicatesAllowed(CloudFormationLintRule):
         matches.extend(self.check(cfn, properties, specs, path))
 
         return matches
+
+    def match(self, cfn):
+        warnings.warn("This rule needs to be rewritten", RuntimeWarning)

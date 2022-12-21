@@ -2,7 +2,8 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-from cfnlint.helpers import RESOURCE_SPECS, VALID_PARAMETER_TYPES_LIST
+import warnings
+from cfnlint.helpers import VALID_PARAMETER_TYPES_LIST
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 
 
@@ -21,7 +22,7 @@ class Join(CloudFormationLintRule):
         self.list_supported_functions = []
         self.singular_supported_functions = []
         for intrinsic_type, intrinsic_value in (
-            RESOURCE_SPECS.get("us-east-1").get("IntrinsicTypes").items()
+            {}.get("us-east-1", {}).get("IntrinsicTypes", {}).items()
         ):
             if "List" in intrinsic_value.get("ReturnTypes", []):
                 self.list_supported_functions.append(intrinsic_type)
@@ -171,6 +172,8 @@ class Join(CloudFormationLintRule):
 
     def match(self, cfn):
         matches = []
+
+        warnings.warn("This rule needs to be rewritten", RuntimeWarning)
 
         join_objs = cfn.search_deep_keys("Fn::Join")
 

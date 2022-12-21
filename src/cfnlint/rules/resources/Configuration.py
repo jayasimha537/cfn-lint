@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT-0
 import cfnlint.helpers
 from cfnlint.helpers import REGISTRY_SCHEMAS
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from cfnlint.schema_manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 
 class Configuration(CloudFormationLintRule):
     """Check Base Resource Configuration"""
@@ -108,7 +108,7 @@ class Configuration(CloudFormationLintRule):
             )
         else:
             self.logger.debug("Check resource types by region...")
-            for region, specs in cfnlint.helpers.RESOURCE_SPECS.items():
+            for region, specs in {}.items():
                 if region in cfn.regions:
                     if resource_type not in PROVIDER_SCHEMA_MANAGER.get_resource_types(region) and resource_type not in [
                         s["typeName"] for s in REGISTRY_SCHEMAS
@@ -127,7 +127,7 @@ class Configuration(CloudFormationLintRule):
                             )
 
         if "Properties" not in resource_values:
-            resource_spec = cfnlint.helpers.RESOURCE_SPECS[cfn.regions[0]]
+            resource_spec = {}
             if resource_type in resource_spec["ResourceTypes"]:
                 properties_spec = resource_spec["ResourceTypes"][resource_type][
                     "Properties"

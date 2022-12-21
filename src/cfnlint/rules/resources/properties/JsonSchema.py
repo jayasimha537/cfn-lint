@@ -17,7 +17,7 @@ from cfnlint.helpers import (
     UNCONVERTED_SUFFIXES,
 )
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from cfnlint.schema_manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 from cfnlint.template import Template
 
 LOGGER = logging.getLogger("cfnlint.rules.resources.properties.JsonSchema")

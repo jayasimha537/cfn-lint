@@ -2,10 +2,10 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
+import warnings
 import cfnlint.helpers
-from cfnlint.helpers import RESOURCE_SPECS
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from cfnlint.schema_manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 
 class ValueRefGetAtt(CloudFormationLintRule):
     """Check if Resource Properties are correct"""
@@ -61,7 +61,7 @@ class ValueRefGetAtt(CloudFormationLintRule):
             valid_parameter_types = []
             for parameter in specs.get("Parameters"):
                 for param_type in (
-                    RESOURCE_SPECS.get(cfn.regions[0])
+                    {}.get(cfn.regions[0])
                     .get("ParameterTypes")
                     .get(parameter)
                 ):
@@ -243,10 +243,10 @@ class ValueRefGetAtt(CloudFormationLintRule):
                                 p_path,
                                 check_ref=self.check_value_ref,
                                 check_get_att=self.check_value_getatt,
-                                value_specs=RESOURCE_SPECS.get(cfn.regions[0])
+                                value_specs={}.get(cfn.regions[0])
                                 .get("ValueTypes")
                                 .get(value_type, {}),
-                                list_value_specs=RESOURCE_SPECS.get(cfn.regions[0])
+                                list_value_specs={}.get(cfn.regions[0])
                                 .get("ValueTypes")
                                 .get(list_value_type, {}),
                                 cfn=cfn,
@@ -262,13 +262,13 @@ class ValueRefGetAtt(CloudFormationLintRule):
         matches = []
 
         specs = (
-            RESOURCE_SPECS.get(cfn.regions[0])
+            {}.get(cfn.regions[0])
             .get("PropertyTypes")
             .get(property_type, {})
             .get("Properties", {})
         )
         property_specs = (
-            RESOURCE_SPECS.get(cfn.regions[0]).get("PropertyTypes").get(property_type)
+            {}.get(cfn.regions[0]).get("PropertyTypes").get(property_type)
         )
         matches.extend(self.check(cfn, properties, specs, property_specs, path))
 
@@ -279,19 +279,19 @@ class ValueRefGetAtt(CloudFormationLintRule):
         matches = []
 
         specs = (
-            RESOURCE_SPECS.get(cfn.regions[0])
+            {}.get(cfn.regions[0])
             .get("ResourceTypes")
             .get(resource_type, {})
             .get("Properties", {})
         )
         resource_specs = (
-            RESOURCE_SPECS.get(cfn.regions[0]).get("ResourceTypes").get(resource_type)
+            {}.get(cfn.regions[0]).get("ResourceTypes").get(resource_type)
         )
         matches.extend(self.check(cfn, properties, specs, resource_specs, path))
 
         return matches
 
     def match(self, cfn):
-        print(PROVIDER_SCHEMA_MANAGER.all_getatts(cfn.regions[0]))
+        warnings.warn("This rule needs to be rewritten", RuntimeWarning)
 
     

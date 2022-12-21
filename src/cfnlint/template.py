@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT-0
 import logging
 import re
 from copy import copy, deepcopy
-
+import warnings
 import cfnlint.conditions
 import cfnlint.helpers
 from cfnlint.graph import Graph
@@ -221,8 +221,9 @@ class Template:  # pylint: disable=R0904,too-many-lines,too-many-instance-attrib
         return results
 
     def get_valid_getatts(self):
-        resourcetypes = cfnlint.helpers.RESOURCE_SPECS["us-east-1"].get("ResourceTypes")
-        propertytypes = cfnlint.helpers.RESOURCE_SPECS["us-east-1"].get("PropertyTypes")
+        warnings.warn("This function needs to be rewritten", RuntimeWarning)
+        resourcetypes = {}.get("ResourceTypes", {})
+        propertytypes = {}.get("PropertyTypes", {})
         results = {}
         resources = self.template.get("Resources", {})
 

@@ -25,7 +25,7 @@ from cfnlint.helpers import (
     get_url_content,
     url_has_newer_version,
 )
-from cfnlint.schema_manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 
 LOGGER = logging.getLogger(__name__)
 

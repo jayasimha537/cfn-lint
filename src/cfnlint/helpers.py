@@ -384,13 +384,6 @@ def load_resource(package, filename="us-east-1.json"):
         )
     return json.loads(pkg_resources.read_text(package, filename, encoding="utf-8"))
 
-RESOURCE_SPECS: Dict[str, dict] = {
-    'us-east-1': {
-        'IntrinsicTypes': {},
-        'ResourceTypes': {},
-        'PropertyTypes': {},
-    }
-}
 REGISTRY_SCHEMAS: List[dict] = []
 
 

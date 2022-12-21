@@ -6,9 +6,9 @@ import multiprocessing
 import os
 import zipfile
 from typing import Any, Dict, List, Union
-from pkg_resources import resource_listdir
+
 import jsonpatch
-from cfnlint.schema import Schema
+from pkg_resources import resource_listdir
 
 from cfnlint.helpers import (
     REGIONS,
@@ -18,6 +18,7 @@ from cfnlint.helpers import (
     load_resource,
     url_has_newer_version,
 )
+from cfnlint.schema.schema import Schema
 
 LOGGER = logging.getLogger(__name__)
 
@@ -65,9 +66,11 @@ class ProviderSchemaManager:
                 f"cfnlint.data.ProviderSchemas.{region}", fromlist=[""]
             )
             # load the schema
-            self._schemas[region][resource_type] = Schema(load_resource(
-                self._provider_schema_modules[region], filename=(f"{rt}.json")
-            ))
+            self._schemas[region][resource_type] = Schema(
+                load_resource(
+                    self._provider_schema_modules[region], filename=(f"{rt}.json")
+                )
+            )
             return self._schemas[region][resource_type]
         return schema
 
@@ -203,8 +206,11 @@ class ProviderSchemaManager:
 
     def all_getatts(self, region: str) -> Dict[str, Dict]:
         if not self._cache["GetAtts"][region]:
+            get_atts = {}
             for schema in self._schemas[region].values():
-                get_atts = schema.get_atts()
+                get_atts[schema.type_name] = schema.get_atts()
+
+            self._cache["GetAtts"][region] = get_atts
 
         return self._cache["GetAtts"][region]
 

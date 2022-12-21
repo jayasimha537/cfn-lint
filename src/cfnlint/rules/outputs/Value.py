@@ -2,7 +2,7 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-from cfnlint.helpers import RESOURCE_SPECS
+import warnings
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 
 
@@ -18,11 +18,12 @@ class Value(CloudFormationLintRule):
     def __init__(self):
         """Init"""
         super().__init__()
-        self.resourcetypes = []
+        self.resourcetypes = {}
 
     def match(self, cfn):
         matches = []
 
+        warnings.warn("This rule needs to be rewritten", RuntimeWarning)
         template = cfn.template
 
         getatts = cfn.search_deep_keys("Fn::GetAtt")

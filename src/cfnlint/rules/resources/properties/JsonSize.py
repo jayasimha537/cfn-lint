@@ -5,9 +5,8 @@ SPDX-License-Identifier: MIT-0
 import datetime
 import json
 import re
-
+import warnings
 import cfnlint.helpers
-from cfnlint.helpers import RESOURCE_SPECS
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 
 
@@ -119,7 +118,7 @@ class JsonSize(CloudFormationLintRule):
                                     p_path,
                                     prop,
                                     cfn,
-                                    RESOURCE_SPECS.get(cfn.regions[0])
+                                    {}.get(cfn.regions[0])
                                     .get("ValueTypes")
                                     .get(value_type, {}),
                                 )
@@ -131,7 +130,7 @@ class JsonSize(CloudFormationLintRule):
         matches = []
 
         specs = (
-            RESOURCE_SPECS.get(cfn.regions[0])
+            {}.get(cfn.regions[0])
             .get("PropertyTypes")
             .get(property_type, {})
             .get("Properties", {})
@@ -145,7 +144,7 @@ class JsonSize(CloudFormationLintRule):
         matches = []
 
         specs = (
-            RESOURCE_SPECS.get(cfn.regions[0])
+            {}.get(cfn.regions[0])
             .get("ResourceTypes")
             .get(resource_type, {})
             .get("Properties", {})
@@ -153,3 +152,6 @@ class JsonSize(CloudFormationLintRule):
         matches.extend(self.check(cfn, properties, specs, path))
 
         return matches
+
+    def match(self, cfn):
+        warnings.warn("This rule needs to be rewritten", RuntimeWarning)
