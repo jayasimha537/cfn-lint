@@ -4,6 +4,7 @@ SPDX-License-Identifier: MIT-0
 """
 import logging
 import re
+import numbers
 from copy import deepcopy
 from typing import Any, Callable, Dict
 
@@ -19,8 +20,50 @@ from cfnlint.helpers import (
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 from cfnlint.template import Template
+import cfnlint.schema.validator
+import cfnlint.schema._legacy_validators
+from jsonschema import _utils, _validators
 
 LOGGER = logging.getLogger("cfnlint.rules.resources.properties.JsonSchema")
+
+
+def is_array(checker, instance):
+    return isinstance(instance, list)
+
+
+def is_bool(checker, instance):
+    return isinstance(instance, bool)
+
+
+def is_integer(checker, instance):
+    # bool inherits from int, so ensure bools aren't reported as ints
+    if isinstance(instance, bool):
+        return False
+    return isinstance(instance, int)
+
+
+def is_null(checker, instance):
+    return instance is None
+
+
+def is_number(checker, instance):
+    # bool inherits from int, so ensure bools aren't reported as ints
+    if isinstance(instance, bool):
+        return False
+    return isinstance(instance, numbers.Number)
+
+
+def is_object(checker, instance):
+    return isinstance(instance, dict)
+
+
+def is_string(checker, instance):
+    return isinstance(instance, str)
+
+
+def is_any(checker, instance):
+    return True
+
 
 # pylint: disable=too-many-instance-attributes
 class RuleSet:
@@ -139,11 +182,40 @@ class JsonSchema(CloudFormationLintRule):
 
         return matches
 
-
     def _setup_validator(self, cfn: Template):
         validators: Dict[str, Callable[[Any, Any, Any, Any], Any]] = {
+            "$ref": _validators.ref,
+            "additionalItems": _validators.additionalItems,
             "additionalProperties": self.validate_additional_properties,
+            "allOf": _validators.allOf,
+            "anyOf": _validators.anyOf,
+            "const": _validators.const,
+            "contains": cfnlint.schema._legacy_validators.contains_draft6_draft7,
+            "dependencies": cfnlint.schema._legacy_validators.dependencies_draft4_draft6_draft7,
+            "enum": _validators.enum,
+            "exclusiveMaximum": _validators.exclusiveMaximum,
+            "exclusiveMinimum": _validators.exclusiveMinimum,
+            "format": _validators.format,
+            "if": _validators.if_,
+            "items": cfnlint.schema._legacy_validators.items_draft6_draft7_draft201909,
+            "maxItems": _validators.maxItems,
+            "maxLength": _validators.maxLength,
+            "maxProperties": _validators.maxProperties,
+            "maximum": _validators.maximum,
+            "minItems": _validators.minItems,
+            "minLength": _validators.minLength,
+            "minProperties": _validators.minProperties,
+            "minimum": _validators.minimum,
+            "multipleOf": _validators.multipleOf,
+            "not": _validators.not_,
+            "oneOf": _validators.oneOf,
+            "pattern": _validators.pattern,
+            "patternProperties": _validators.patternProperties,
             "properties": self.properties,
+            "propertyNames": _validators.propertyNames,
+            "required": _validators.required,
+            "type": _validators.type,
+            "uniqueItems": _validators.uniqueItems,
         }
         for js, rule_id in self.rules.__dict__.items():
             rule = self.child_rules.get(rule_id)
@@ -155,9 +227,27 @@ class JsonSchema(CloudFormationLintRule):
                 if hasattr(rule, "validate") and callable(getattr(rule, "validate")):
                     validators[js] = rule.validate
 
-        self.validator = jsonschema.validators.extend(
-            jsonschema.Draft7Validator,
+        self.validator = cfnlint.schema.validator.create(
+            meta_schema=_utils.load_schema("draft7"),
             validators=validators,
+            type_checker=jsonschema.TypeChecker(
+                {
+                    "array": is_array,
+                    "boolean": is_bool,
+                    "integer": lambda checker, instance: (
+                        is_integer(checker, instance)
+                        or isinstance(instance, float) and instance.is_integer()
+                    ),
+                    "object": is_object,
+                    "null": is_null,
+                    "number": is_number,
+                    "string": is_string,
+                },
+            ),
+            format_checker=jsonschema.draft7_format_checker,
+            version="draft7",
+            id_of=cfnlint.schema._legacy_validators.id_of_ignore_ref(),
+            applicable_validators=cfnlint.schema._legacy_validators.ignore_ref_siblings,
         )
 
     def match(self, cfn):
@@ -200,7 +290,9 @@ class JsonSchema(CloudFormationLintRule):
                 for region in cfn.regions:
                     schema = {}
                     try:
-                        schema = PROVIDER_SCHEMA_MANAGER.get_resource_schema(region, t).json_schema()
+                        schema = PROVIDER_SCHEMA_MANAGER.get_resource_schema(
+                            region, t
+                        ).json_schema()
                     except FileNotFoundError as e:
                         if e.args[0] == region:
                             LOGGER.info("No specs for region %s", region)
