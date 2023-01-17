@@ -4,11 +4,11 @@ SPDX-License-Identifier: MIT-0
 """
 from typing import Any, List
 
-import jsonschema
+from cfnlint.schema.exceptions import ValidationError
 
 from cfnlint.helpers import FUNCTIONS, FUNCTIONS_MULTIPLE
 from cfnlint.rules import CloudFormationLintRule
-from cfnlint.template import Template
+from cfnlint.template.template import Template
 
 
 class ValuePrimitiveType(CloudFormationLintRule):
@@ -42,7 +42,7 @@ class ValuePrimitiveType(CloudFormationLintRule):
         if not strict_check:
             try:
                 if item_type in ["string"]:
-                    str(value)
+                    return isinstance(value, (str, bool, int, float))
                 elif item_type in ["boolean"]:
                     if value not in ["True", "true", "False", "false"]:
                         return False
@@ -109,7 +109,17 @@ class ValuePrimitiveType(CloudFormationLintRule):
             if isinstance(instance, dict):
                 if len(instance) == 1:
                     for k, v in instance.items():
-                        if k == "Ref":
+                        # Most conditions should be eliminated but sometimes they trickle through because 
+                        # of different issues including a person providing a condition name that doesn't exist
+                        if k == "Fn::If":
+                            if len(v) == 3:
+                                for i in range(1, 3):
+                                    for v_err in self.validate(validator=validator, types=types, instance=v[i], schema=schema):
+                                        v_err.path.append("Fn::If")
+                                        v_err.path.append(i)
+                                        yield v_err
+                            return
+                        elif k == "Ref":
                             valid_refs = self.cfn.get_valid_refs()
                             for t in types:
                                 if t == "array":
@@ -128,6 +138,7 @@ class ValuePrimitiveType(CloudFormationLintRule):
                             yield ValidationError(
                                 f"{instance!r} is not of type {reprs}", extra_args={}
                             )
+                            return
                         elif k in FUNCTIONS_MULTIPLE:
                             for t in types:
                                 if t == "array":
@@ -135,6 +146,7 @@ class ValuePrimitiveType(CloudFormationLintRule):
                             yield ValidationError(
                                 f"{instance!r} is not of type {reprs}", extra_args={}
                             )
+                            return
                         elif k in FUNCTIONS:
                             for t in types:
                                 if t in ["string", "integer", "boolane"]:
@@ -142,10 +154,12 @@ class ValuePrimitiveType(CloudFormationLintRule):
                             yield ValidationError(
                                 f"{instance!r} is not of type {reprs}", extra_args={}
                             )
+                            return
                         else:
                             yield ValidationError(
                                 f"{instance!r} is not of type {reprs}", extra_args={}
                             )
+                            return
             if not self._schema_check_primitive_type(instance, types):
                 extra_args = {
                     "actual_type": type(instance).__name__,
@@ -154,12 +168,6 @@ class ValuePrimitiveType(CloudFormationLintRule):
                 yield ValidationError(
                     f"{instance!r} is not of type {reprs}", extra_args=extra_args
                 )
-
-
-class ValidationError(jsonschema.ValidationError):
-    def __init__(self, message, extra_args):
-        super().__init__(message)
-        self.extra_args = extra_args
 
 
 def ensure_list(thing):

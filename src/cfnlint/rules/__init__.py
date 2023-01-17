@@ -11,9 +11,9 @@ from typing import Any, Dict, List, MutableSet, Optional, Tuple, Union
 
 import cfnlint.helpers
 import cfnlint.rules.custom
-from cfnlint.decode.node import TemplateAttributeError
+from cfnlint.decode.exceptions import TemplateAttributeError
 from cfnlint.exceptions import DuplicateRuleError
-from cfnlint.template import Template
+from cfnlint.template.template import Template
 
 LOGGER = logging.getLogger(__name__)
 

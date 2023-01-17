@@ -7,7 +7,7 @@ import os
 from test.testlib.testcase import BaseTestCase
 
 import cfnlint.helpers
-from cfnlint.template import Template  # pylint: disable=E0401
+from cfnlint.template.template import Template  # pylint: disable=E0401
 
 
 class TestTemplate(BaseTestCase):

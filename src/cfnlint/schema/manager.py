@@ -22,7 +22,6 @@ from cfnlint.schema.schema import Schema
 
 LOGGER = logging.getLogger(__name__)
 
-
 class ProviderSchemaManager:
     _schemas: Dict[str, Schema] = {}
     _provider_schema_modules: Dict[str, Any] = {}
@@ -204,15 +203,12 @@ class ProviderSchemaManager:
 
         return content
 
-    def all_getatts(self, region: str) -> Dict[str, Dict]:
-        if not self._cache["GetAtts"][region]:
-            get_atts = {}
-            for schema in self._schemas[region].values():
-                get_atts[schema.type_name] = schema.get_atts()
+    def get_type_getatts(self, resource_type: str, region: str) -> Dict[str, Dict]:
+        if resource_type not in self._cache["GetAtts"][region]:
+            self.get_resource_schema(region=region, resource_type=resource_type)
+            self._cache["GetAtts"][region][resource_type] = self._schemas[region][resource_type].get_atts()
 
-            self._cache["GetAtts"][region] = get_atts
-
-        return self._cache["GetAtts"][region]
+        return self._cache["GetAtts"][region][resource_type]
 
     def update_schemas(self, force: bool):
         pass

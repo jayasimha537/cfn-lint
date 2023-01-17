@@ -9,6 +9,8 @@ import warnings
 import cfnlint.conditions
 import cfnlint.helpers
 from cfnlint.graph import Graph
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.template.getatts import GetAtts
 
 LOGGER = logging.getLogger(__name__)
 
@@ -221,74 +223,14 @@ class Template:  # pylint: disable=R0904,too-many-lines,too-many-instance-attrib
         return results
 
     def get_valid_getatts(self):
-        warnings.warn("This function needs to be rewritten", RuntimeWarning)
-        resourcetypes = {}.get("ResourceTypes", {})
-        propertytypes = {}.get("PropertyTypes", {})
-        results = {}
+        results = GetAtts(self.regions)
+
         resources = self.template.get("Resources", {})
 
-        astrik_string_types = ("AWS::CloudFormation::Stack",)
-        astrik_unknown_types = (
-            "Custom::",
-            "AWS::Serverless::",
-            "AWS::CloudFormation::CustomResource",
-        )
-
-        def build_output_string(resource_type, property_name):
-            prop = propertytypes.get(f"{resource_type}.{property_name}")
-            if prop is None:
-                yield None, None
-            else:
-                for k, v in prop.get("Properties", {}).items():
-                    t = v.get("Type")
-                    if t:
-                        for item in build_output_string(resource_type, v):
-                            yield f"{k}.{item[0]}", item[1]
-                    else:
-                        yield k, v.get("PrimitiveType")
-
         for name, value in resources.items():
-            if "Type" in value:
-                valtype = value["Type"]
-                if isinstance(valtype, str):
-                    if valtype.startswith(astrik_string_types):
-                        LOGGER.debug(
-                            "Cant build an appropriate getatt list from %s", valtype
-                        )
-                        results[name] = {"*": {"PrimitiveItemType": "String"}}
-                    elif valtype.startswith(astrik_unknown_types) or valtype.endswith(
-                        "::MODULE"
-                    ):
-                        LOGGER.debug(
-                            "Cant build an appropriate getatt list from %s", valtype
-                        )
-                        results[name] = {"*": {}}
-                    else:
-                        if value["Type"] in resourcetypes:
-                            if "Attributes" in resourcetypes[valtype]:
-                                results[name] = {}
-                                for attname, attvalue in resourcetypes[valtype][
-                                    "Attributes"
-                                ].items():
-                                    if "Type" in attvalue:
-                                        if attvalue.get("Type") in ["List", "Map"]:
-                                            element = {}
-                                            element.update(attvalue)
-                                            results[name][attname] = element
-                                        else:
-                                            for item in build_output_string(
-                                                value["Type"], attname
-                                            ):
-                                                if item[0] is None:
-                                                    continue
-                                                element = {"PrimitiveType": item[1]}
-                                                results[name][
-                                                    f"{attname}.{item[0]}"
-                                                ] = element
-                                    else:
-                                        element = {}
-                                        element.update(attvalue)
-                                        results[name][attname] = element
+            resource_type = value.get("Type")
+            if isinstance(resource_type, str):
+                results.add(name, resource_type)
 
         return results
 

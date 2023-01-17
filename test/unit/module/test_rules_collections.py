@@ -9,7 +9,7 @@ import cfnlint.decode.cfn_yaml  # pylint: disable=E0401
 from cfnlint.core import DEFAULT_RULESDIR  # pylint: disable=E0401
 from cfnlint.exceptions import DuplicateRuleError
 from cfnlint.rules import CloudFormationLintRule, RulesCollection
-from cfnlint.template import Template
+from cfnlint.template.template import Template
 
 
 class TestRulesCollection(BaseTestCase):

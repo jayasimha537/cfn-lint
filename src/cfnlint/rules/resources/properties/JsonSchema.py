@@ -19,7 +19,7 @@ from cfnlint.helpers import (
 )
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
-from cfnlint.template import Template
+from cfnlint.template.template import Template
 import cfnlint.schema.validator
 import cfnlint.schema._legacy_validators
 from jsonschema import _utils, _validators

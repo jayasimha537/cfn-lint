@@ -17,7 +17,8 @@ import cfnlint.maintenance
 import cfnlint.runner
 from cfnlint.helpers import REGIONS, REGISTRY_SCHEMAS
 from cfnlint.rules import Match, ParseError, RulesCollection, TransformError
-from cfnlint.template import Template
+from cfnlint.template.template import Template
+from cfnlint.decode import decode
 
 LOGGER = logging.getLogger("cfnlint")
 DEFAULT_RULESDIR = os.path.join(os.path.dirname(__file__), "rules")
@@ -297,7 +298,7 @@ def get_template_rules(
         ):
             ignore_bad_template = True
 
-    (template, errors) = cfnlint.decode.decode(filename)
+    (template, errors) = decode.decode(filename)
 
     if errors:
         _build_rule_cache(args)

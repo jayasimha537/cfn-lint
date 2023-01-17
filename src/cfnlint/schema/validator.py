@@ -4,8 +4,8 @@ import typing
 import warnings
 from operator import methodcaller
 import jsonschema
+from cfnlint.schema import exceptions
 from jsonschema.validators import validator_for, RefResolver
-from jsonschema import exceptions, validators
 from typing import Mapping, Any, Union, Iterable
 
 def _id_of(schema):
@@ -184,6 +184,26 @@ def create(
             if scope:
                 self.resolver.push_scope(scope)
             try:
+                if self.is_type(instance, "object"):
+                    if len(instance) == 1:
+                        for k, v in instance.items():
+                            # if the element is a condition lets evaluate both the 
+                            # true and false paths of the condition
+                            if k == "Fn::If":
+                                if len(v) == 3:
+                                    # just need to evaluate the second and third element
+                                    # in the list
+                                    for i in range(1, 3):
+                                        for error in self.iter_errors(instance=v[i]):
+                                            # add the paths for the elements we have removed
+                                            error.path.appendleft(i)
+                                            error.path.appendleft("Fn::If")
+                                            yield error
+                                return
+                            elif k == "Ref":
+                                if v == "AWS::NoValue":
+                                    # This is equivalent to an empty object
+                                    instance = {}
                 for k, v in applicable_validators(_schema):
                     validator = self.VALIDATORS.get(k)
                     if validator is None:
@@ -262,6 +282,6 @@ def create(
                     error.path.appendleft(path)
                 if schema_path is not None:
                     error.schema_path.appendleft(schema_path)
-                yield
+                yield error
 
     return Validator
