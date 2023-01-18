@@ -24,6 +24,7 @@
     "AvailabilityZones" : {
       "description" : "A list of Availability Zones (AZs) where instances in the DB cluster can be created. For information on AWS Regions and Availability Zones, see Choosing the Regions and Availability Zones in the Amazon Aurora User Guide.",
       "type" : "array",
+      "awsType": "AvailabilityZones",
       "uniqueItems" : true,
       "items" : {
         "type" : "string"

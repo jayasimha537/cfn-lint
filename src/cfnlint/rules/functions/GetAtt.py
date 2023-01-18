@@ -34,8 +34,11 @@ class GetAtt(CloudFormationLintRule):
                     elif context.path[0] == 1 and not enum_0_list:
                         match = RuleMatch(path=path, message=context.message)
                 else:
-                    # deque length is 0, which means its a string
-                    match = RuleMatch(path=path, message=context.message)
+                    # deque length is 0.  Should be a string but could be an object or another type
+                    if isinstance(context.instance, str):
+                        match = RuleMatch(path=path, message=context.message)
+                    else:
+                        match = RuleMatch(path=path, message=f"Fn::GetAtt should be a list or a string")
 
         if enum_0_list:
             match = RuleMatch(path=path, message=f"{enum_0_message} {list(enum_0_list)}")

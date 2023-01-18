@@ -83,6 +83,7 @@ class RuleSet:
         self.minItems = "E3032"
         self.pattern = "E3031"
         self.oneOf = "E2523"
+        self.awsType = "E3008"
 
 
 class JsonSchema(CloudFormationLintRule):
@@ -104,6 +105,7 @@ class JsonSchema(CloudFormationLintRule):
         "E3033": None,
         "E3034": None,
         "E3037": None,
+        "E3008": None,
     }
 
     def __init__(self):

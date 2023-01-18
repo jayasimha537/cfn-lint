@@ -67,6 +67,22 @@ class Schema:
 
         return getatts, is_object
 
+    def get_ref(self) -> Dict[str, dict]:
+        """Get the ref schema
+
+        Args:
+        Returns:
+            Dict: Dict of json schema for the Ref
+        """
+        attrs = {}
+        for ro_attr in self.schema.get("readOnlyProperties", []):
+            try:
+                attrs.update(self._flatten_getatts(ro_attr)[0].items())
+            except KeyError as e:
+                pass
+
+        return attrs
+
     def get_atts(self) -> Dict[str, dict]:
         """Get the valid GetAtts for this schema. Schemas are defined in property
             readOnlyProperties and we need to build definitions of those properties

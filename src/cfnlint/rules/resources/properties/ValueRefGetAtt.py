@@ -294,4 +294,8 @@ class ValueRefGetAtt(CloudFormationLintRule):
     def match(self, cfn):
         warnings.warn("This rule needs to be rewritten", RuntimeWarning)
 
+
+    def validate(self, validator, uI, instance, schema):
+        aws_type = schema.get("awsType")
+        print(aws_type)
     

@@ -210,6 +210,13 @@ class ProviderSchemaManager:
 
         return self._cache["GetAtts"][region][resource_type]
 
+    def get_type_refs(self, resource_type: str, region: str) -> Dict[str, Dict]:
+        if resource_type not in self._cache["Refs"][region]:
+            self.get_resource_schema(region=region, resource_type=resource_type)
+            self._cache["Refs"][region][resource_type] = self._schemas[region][resource_type].get_ref()
+
+        return self._cache["GetAtts"][region][resource_type]
+
     def update_schemas(self, force: bool):
         pass
 
