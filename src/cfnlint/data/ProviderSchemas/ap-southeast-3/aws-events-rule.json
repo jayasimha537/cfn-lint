@@ -1,16 +1,22 @@
 {
-  "typeName" : "AWS::Events::Rule",
-  "description" : "Resource Type definition for AWS::Events::Rule",
-  "additionalProperties" : false,
-  "properties" : {
-    "BarName" : {
-      "type" : "string"
-    },
-    "Id" : {
-      "type" : "string"
-    }
+ "typeName": "AWS::Events::Rule",
+ "description": "Resource Type definition for AWS::Events::Rule",
+ "additionalProperties": false,
+ "properties": {
+  "BarName": {
+   "type": "string"
   },
-  "required" : [ "BarName" ],
-  "primaryIdentifier" : [ "/properties/Id" ],
-  "readOnlyProperties" : [ "/properties/Id" ]
+  "Id": {
+   "type": "string"
+  }
+ },
+ "required": [
+  "BarName"
+ ],
+ "primaryIdentifier": [
+  "/properties/Id"
+ ],
+ "readOnlyProperties": [
+  "/properties/Id"
+ ]
 }

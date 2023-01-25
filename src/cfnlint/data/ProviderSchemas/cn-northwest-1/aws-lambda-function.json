@@ -19,7 +19,9 @@
     "ec2:DescribeVpcs",
     "kms:Decrypt",
     "lambda:GetCodeSigningConfig",
-    "lambda:GetFunctionCodeSigningConfig"
+    "lambda:GetFunctionCodeSigningConfig",
+    "lambda:GetRuntimeManagementConfig",
+    "lambda:PutRuntimeManagementConfig"
    ]
   },
   "update": {
@@ -42,7 +44,9 @@
     "lambda:PutFunctionCodeSigningConfig",
     "lambda:DeleteFunctionCodeSigningConfig",
     "lambda:GetCodeSigningConfig",
-    "lambda:GetFunctionCodeSigningConfig"
+    "lambda:GetFunctionCodeSigningConfig",
+    "lambda:GetRuntimeManagementConfig",
+    "lambda:PutRuntimeManagementConfig"
    ]
   },
   "list": {
@@ -59,7 +63,10 @@
  },
  "typeName": "AWS::Lambda::Function",
  "readOnlyProperties": [
-  "/properties/Arn"
+  "/properties/Arn",
+  "/properties/SnapStartResponse",
+  "/properties/SnapStartResponse/ApplyOn",
+  "/properties/SnapStartResponse/OptimizationStatus"
  ],
  "description": "Resource Type definition for AWS::Lambda::Function",
  "writeOnlyProperties": [
@@ -158,6 +165,102 @@
     }
    }
   },
+  "RuntimeManagementConfig": {
+   "additionalProperties": false,
+   "type": "object",
+   "properties": {
+    "UpdateRuntimeOn": {
+     "description": "Trigger for runtime update",
+     "type": "string",
+     "enum": [
+      "Auto",
+      "FunctionUpdate",
+      "Manual"
+     ]
+    },
+    "RuntimeVersionArn": {
+     "description": "Unique identifier for a runtime version arn",
+     "type": "string"
+    }
+   },
+   "required": [
+    "UpdateRuntimeOn"
+   ]
+  },
+  "SnapStart": {
+   "description": "The function's SnapStart setting. When set to PublishedVersions, Lambda creates a snapshot of the execution environment when you publish a function version.",
+   "additionalProperties": false,
+   "type": "object",
+   "properties": {
+    "ApplyOn": {
+     "description": "Applying SnapStart setting on function resource type.",
+     "type": "string",
+     "enum": [
+      "PublishedVersions",
+      "None"
+     ]
+    }
+   },
+   "required": [
+    "ApplyOn"
+   ]
+  },
+  "SnapStartResponse": {
+   "description": "The function's SnapStart Response. When set to PublishedVersions, Lambda creates a snapshot of the execution environment when you publish a function version.",
+   "additionalProperties": false,
+   "type": "object",
+   "properties": {
+    "OptimizationStatus": {
+     "description": "Indicates whether SnapStart is activated for the specified function version.",
+     "type": "string",
+     "enum": [
+      "On",
+      "Off"
+     ]
+    },
+    "ApplyOn": {
+     "description": "Applying SnapStart setting on function resource type.",
+     "type": "string",
+     "enum": [
+      "PublishedVersions",
+      "None"
+     ]
+    }
+   }
+  },
+  "Code": {
+   "additionalProperties": false,
+   "type": "object",
+   "properties": {
+    "S3ObjectVersion": {
+     "minLength": 1,
+     "description": "For versioned objects, the version of the deployment package object to use.",
+     "type": "string",
+     "maxLength": 1024
+    },
+    "S3Bucket": {
+     "minLength": 3,
+     "pattern": "^[0-9A-Za-z\\.\\-_]*(?<!\\.)$",
+     "description": "An Amazon S3 bucket in the same AWS Region as your function. The bucket can be in a different AWS account.",
+     "type": "string",
+     "maxLength": 63
+    },
+    "ZipFile": {
+     "description": "The source code of your Lambda function. If you include your function source inline with this parameter, AWS CloudFormation places it in a file named index and zips it to create a deployment package..",
+     "type": "string"
+    },
+    "S3Key": {
+     "minLength": 1,
+     "description": "The Amazon S3 key of the deployment package.",
+     "type": "string",
+     "maxLength": 1024
+    },
+    "ImageUri": {
+     "description": "ImageUri.",
+     "type": "string"
+    }
+   }
+  },
   "Environment": {
    "description": "A function's environment variable settings.",
    "additionalProperties": false,
@@ -233,39 +336,6 @@
    "required": [
     "Size"
    ]
-  },
-  "Code": {
-   "additionalProperties": false,
-   "type": "object",
-   "properties": {
-    "S3ObjectVersion": {
-     "minLength": 1,
-     "description": "For versioned objects, the version of the deployment package object to use.",
-     "type": "string",
-     "maxLength": 1024
-    },
-    "S3Bucket": {
-     "minLength": 3,
-     "pattern": "^[0-9A-Za-z\\.\\-_]*(?<!\\.)$",
-     "description": "An Amazon S3 bucket in the same AWS Region as your function. The bucket can be in a different AWS account.",
-     "type": "string",
-     "maxLength": 63
-    },
-    "ZipFile": {
-     "description": "The source code of your Lambda function. If you include your function source inline with this parameter, AWS CloudFormation places it in a file named index and zips it to create a deployment package..",
-     "type": "string"
-    },
-    "S3Key": {
-     "minLength": 1,
-     "description": "The Amazon S3 key of the deployment package.",
-     "type": "string",
-     "maxLength": 1024
-    },
-    "ImageUri": {
-     "description": "ImageUri.",
-     "type": "string"
-    }
-   }
   }
  },
  "required": [
@@ -286,10 +356,18 @@
    "description": "For network connectivity to AWS resources in a VPC, specify a list of security groups and subnets in the VPC.",
    "$ref": "#/definitions/VpcConfig"
   },
+  "RuntimeManagementConfig": {
+   "description": "RuntimeManagementConfig",
+   "$ref": "#/definitions/RuntimeManagementConfig"
+  },
   "ReservedConcurrentExecutions": {
    "description": "The number of simultaneous executions to reserve for the function.",
    "type": "integer",
    "minimum": 0
+  },
+  "SnapStart": {
+   "description": "The SnapStart setting of your function",
+   "$ref": "#/definitions/SnapStart"
   },
   "FileSystemConfigs": {
    "maxItems": 1,
@@ -365,6 +443,10 @@
    "description": "The name of the method within your code that Lambda calls to execute your function. The format includes the file name. It can also include namespaces and other qualifiers, depending on the runtime",
    "type": "string",
    "maxLength": 128
+  },
+  "SnapStartResponse": {
+   "description": "The SnapStart response of your function",
+   "$ref": "#/definitions/SnapStartResponse"
   },
   "Code": {
    "description": "The code for the function.",

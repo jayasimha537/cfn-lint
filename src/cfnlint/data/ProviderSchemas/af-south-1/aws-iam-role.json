@@ -61,7 +61,8 @@
    "type": [
     "object",
     "string"
-   ]
+   ],
+   "maxLength": 2048
   },
   "Description": {
    "description": "A description of the role that you provide.",

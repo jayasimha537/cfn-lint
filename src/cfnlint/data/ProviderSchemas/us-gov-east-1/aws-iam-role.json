@@ -30,7 +30,8 @@
    }
   },
   "AssumeRolePolicyDocument": {
-   "type": "object"
+   "type": "object",
+   "maxLength": 2048
   },
   "Arn": {
    "type": "string"

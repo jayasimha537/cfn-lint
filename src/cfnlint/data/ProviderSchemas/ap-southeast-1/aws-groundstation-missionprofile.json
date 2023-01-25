@@ -82,7 +82,8 @@
  "required": [
   "Name",
   "MinimumViableContactDurationSeconds",
-  "DataflowEdges"
+  "DataflowEdges",
+  "TrackingConfigArn"
  ],
  "readOnlyProperties": [
   "/properties/Id",

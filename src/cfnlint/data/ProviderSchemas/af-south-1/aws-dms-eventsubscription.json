@@ -1,62 +1,75 @@
 {
-  "typeName" : "AWS::DMS::EventSubscription",
-  "description" : "Resource Type definition for AWS::DMS::EventSubscription",
-  "additionalProperties" : false,
-  "properties" : {
-    "SourceType" : {
-      "type" : "string"
-    },
-    "EventCategories" : {
-      "type" : "array",
-      "uniqueItems" : false,
-      "items" : {
-        "type" : "string"
-      }
-    },
-    "Enabled" : {
-      "type" : "boolean"
-    },
-    "SubscriptionName" : {
-      "type" : "string"
-    },
-    "SnsTopicArn" : {
-      "type" : "string"
-    },
-    "SourceIds" : {
-      "type" : "array",
-      "uniqueItems" : false,
-      "items" : {
-        "type" : "string"
-      }
-    },
-    "Id" : {
-      "type" : "string"
-    },
-    "Tags" : {
-      "type" : "array",
-      "uniqueItems" : false,
-      "items" : {
-        "$ref" : "#/definitions/Tag"
-      }
-    }
+ "typeName": "AWS::DMS::EventSubscription",
+ "description": "Resource Type definition for AWS::DMS::EventSubscription",
+ "additionalProperties": false,
+ "properties": {
+  "SourceType": {
+   "type": "string"
   },
-  "definitions" : {
-    "Tag" : {
-      "type" : "object",
-      "additionalProperties" : false,
-      "properties" : {
-        "Value" : {
-          "type" : "string"
-        },
-        "Key" : {
-          "type" : "string"
-        }
-      },
-      "required" : [ "Value", "Key" ]
-    }
+  "EventCategories": {
+   "type": "array",
+   "uniqueItems": false,
+   "items": {
+    "type": "string"
+   }
   },
-  "required" : [ "SnsTopicArn" ],
-  "createOnlyProperties" : [ "/properties/SubscriptionName", "/properties/SourceIds", "/properties/Tags" ],
-  "primaryIdentifier" : [ "/properties/Id" ],
-  "readOnlyProperties" : [ "/properties/Id" ]
+  "Enabled": {
+   "type": "boolean"
+  },
+  "SubscriptionName": {
+   "type": "string"
+  },
+  "SnsTopicArn": {
+   "type": "string"
+  },
+  "SourceIds": {
+   "type": "array",
+   "uniqueItems": false,
+   "items": {
+    "type": "string"
+   }
+  },
+  "Id": {
+   "type": "string"
+  },
+  "Tags": {
+   "type": "array",
+   "uniqueItems": false,
+   "items": {
+    "$ref": "#/definitions/Tag"
+   }
+  }
+ },
+ "definitions": {
+  "Tag": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "Value": {
+     "type": "string"
+    },
+    "Key": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "Value",
+    "Key"
+   ]
+  }
+ },
+ "required": [
+  "SnsTopicArn"
+ ],
+ "createOnlyProperties": [
+  "/properties/SubscriptionName",
+  "/properties/SourceIds",
+  "/properties/Tags"
+ ],
+ "primaryIdentifier": [
+  "/properties/Id"
+ ],
+ "readOnlyProperties": [
+  "/properties/Id"
+ ]
 }

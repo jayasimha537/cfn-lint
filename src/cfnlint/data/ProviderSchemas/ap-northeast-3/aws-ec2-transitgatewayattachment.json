@@ -1,49 +1,65 @@
 {
-  "typeName" : "AWS::EC2::TransitGatewayAttachment",
-  "description" : "Resource Type definition for AWS::EC2::TransitGatewayAttachment",
-  "additionalProperties" : false,
-  "properties" : {
-    "TransitGatewayId" : {
-      "type" : "string"
-    },
-    "Id" : {
-      "type" : "string"
-    },
-    "VpcId" : {
-      "type" : "string"
-    },
-    "SubnetIds" : {
-      "type" : "array",
-      "uniqueItems" : false,
-      "items" : {
-        "type" : "string"
-      }
-    },
-    "Tags" : {
-      "type" : "array",
-      "uniqueItems" : false,
-      "items" : {
-        "$ref" : "#/definitions/Tag"
-      }
-    }
+ "typeName": "AWS::EC2::TransitGatewayAttachment",
+ "description": "Resource Type definition for AWS::EC2::TransitGatewayAttachment",
+ "additionalProperties": false,
+ "properties": {
+  "TransitGatewayId": {
+   "type": "string"
   },
-  "definitions" : {
-    "Tag" : {
-      "type" : "object",
-      "additionalProperties" : false,
-      "properties" : {
-        "Value" : {
-          "type" : "string"
-        },
-        "Key" : {
-          "type" : "string"
-        }
-      },
-      "required" : [ "Value", "Key" ]
-    }
+  "Id": {
+   "type": "string"
   },
-  "required" : [ "TransitGatewayId", "VpcId", "SubnetIds" ],
-  "createOnlyProperties" : [ "/properties/TransitGatewayId", "/properties/VpcId", "/properties/SubnetIds", "/properties/Tags" ],
-  "primaryIdentifier" : [ "/properties/Id" ],
-  "readOnlyProperties" : [ "/properties/Id" ]
+  "VpcId": {
+   "type": "string"
+  },
+  "SubnetIds": {
+   "type": "array",
+   "uniqueItems": false,
+   "items": {
+    "type": "string"
+   }
+  },
+  "Tags": {
+   "type": "array",
+   "uniqueItems": false,
+   "items": {
+    "$ref": "#/definitions/Tag"
+   }
+  }
+ },
+ "definitions": {
+  "Tag": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "Value": {
+     "type": "string"
+    },
+    "Key": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "Value",
+    "Key"
+   ]
+  }
+ },
+ "required": [
+  "TransitGatewayId",
+  "VpcId",
+  "SubnetIds"
+ ],
+ "createOnlyProperties": [
+  "/properties/TransitGatewayId",
+  "/properties/VpcId",
+  "/properties/SubnetIds",
+  "/properties/Tags"
+ ],
+ "primaryIdentifier": [
+  "/properties/Id"
+ ],
+ "readOnlyProperties": [
+  "/properties/Id"
+ ]
 }

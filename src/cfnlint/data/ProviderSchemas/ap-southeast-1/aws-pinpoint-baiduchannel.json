@@ -1,26 +1,36 @@
 {
-  "typeName" : "AWS::Pinpoint::BaiduChannel",
-  "description" : "Resource Type definition for AWS::Pinpoint::BaiduChannel",
-  "additionalProperties" : false,
-  "properties" : {
-    "Enabled" : {
-      "type" : "boolean"
-    },
-    "SecretKey" : {
-      "type" : "string"
-    },
-    "ApiKey" : {
-      "type" : "string"
-    },
-    "Id" : {
-      "type" : "string"
-    },
-    "ApplicationId" : {
-      "type" : "string"
-    }
+ "typeName": "AWS::Pinpoint::BaiduChannel",
+ "description": "Resource Type definition for AWS::Pinpoint::BaiduChannel",
+ "additionalProperties": false,
+ "properties": {
+  "Enabled": {
+   "type": "boolean"
   },
-  "required" : [ "SecretKey", "ApiKey", "ApplicationId" ],
-  "createOnlyProperties" : [ "/properties/ApplicationId" ],
-  "primaryIdentifier" : [ "/properties/Id" ],
-  "readOnlyProperties" : [ "/properties/Id" ]
+  "SecretKey": {
+   "type": "string"
+  },
+  "ApiKey": {
+   "type": "string"
+  },
+  "Id": {
+   "type": "string"
+  },
+  "ApplicationId": {
+   "type": "string"
+  }
+ },
+ "required": [
+  "SecretKey",
+  "ApiKey",
+  "ApplicationId"
+ ],
+ "createOnlyProperties": [
+  "/properties/ApplicationId"
+ ],
+ "primaryIdentifier": [
+  "/properties/Id"
+ ],
+ "readOnlyProperties": [
+  "/properties/Id"
+ ]
 }

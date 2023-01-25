@@ -19,11 +19,11 @@
   "OrganizationConfigRuleName": {
    "type": "string"
   },
-  "OrganizationCustomCodeRuleMetadata": {
-   "$ref": "#/definitions/OrganizationCustomCodeRuleMetadata"
-  },
   "Id": {
    "type": "string"
+  },
+  "OrganizationCustomPolicyRuleMetadata": {
+   "$ref": "#/definitions/OrganizationCustomPolicyRuleMetadata"
   }
  },
  "definitions": {
@@ -109,7 +109,7 @@
     "OrganizationConfigRuleTriggerTypes"
    ]
   },
-  "OrganizationCustomCodeRuleMetadata": {
+  "OrganizationCustomPolicyRuleMetadata": {
    "type": "object",
    "additionalProperties": false,
    "properties": {
@@ -122,10 +122,10 @@
     "Runtime": {
      "type": "string"
     },
-    "Description": {
+    "PolicyText": {
      "type": "string"
     },
-    "CodeText": {
+    "Description": {
      "type": "string"
     },
     "ResourceIdScope": {
@@ -161,7 +161,7 @@
    },
    "required": [
     "Runtime",
-    "CodeText"
+    "PolicyText"
    ]
   }
  },
