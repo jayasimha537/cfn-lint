@@ -149,7 +149,8 @@
    "required": [
     "Type"
    ],
-   "additionalProperties": false
+   "additionalProperties": false,
+   "cfnSchema": "aws-route53-healthcheck/healthcheckconfig"
   },
   "HealthCheckTags": {
    "type": "array",

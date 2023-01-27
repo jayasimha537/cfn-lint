@@ -102,7 +102,7 @@ class ValuePrimitiveType(CloudFormationLintRule):
         self.cfn = cfn
 
     # pylint: disable=unused-argument
-    def validate(self, validator, types, instance, schema):
+    def type(self, validator, types, instance, schema):
         types = ensure_list(types)
         reprs = ", ".join(repr(type) for type in types)
         if not any(validator.is_type(instance, type) for type in types):

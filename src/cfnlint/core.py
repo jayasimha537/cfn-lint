@@ -8,7 +8,7 @@ import os
 import sys
 from typing import Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
-from jsonschema.exceptions import ValidationError
+from cfnlint.schema.exceptions import ValidationError
 
 import cfnlint.config
 import cfnlint.decode

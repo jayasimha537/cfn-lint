@@ -212,14 +212,7 @@ class RegexDict(dict):
     def __getitem__(self, item):
         possible_items = {}
         for k, v in self.items():
-            if isinstance(v, dict):
-                if v.get("Type") == "MODULE":
-                    if re.match(k, item):
-                        possible_items[k] = v
-                else:
-                    if k == item:
-                        possible_items[k] = v
-            elif re.match(k, item):
+            if re.match(k, item):
                 possible_items[k] = v
         if not possible_items:
             raise KeyError

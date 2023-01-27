@@ -11,7 +11,8 @@
    }
   },
   "HealthCheckConfig": {
-   "$ref": "#/definitions/HealthCheckConfig"
+   "$ref": "#/definitions/HealthCheckConfig",
+   "cfnSchema": "aws-route53-healthcheck/healthcheckconfig"
   },
   "Id": {
    "type": "string"

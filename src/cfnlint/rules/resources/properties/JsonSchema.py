@@ -16,6 +16,7 @@ from cfnlint.helpers import (
     REGEX_DYN_REF,
     REGISTRY_SCHEMAS,
     UNCONVERTED_SUFFIXES,
+    load_resource
 )
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
@@ -23,6 +24,8 @@ from cfnlint.template.template import Template
 import cfnlint.schema.validator
 import cfnlint.schema._legacy_validators
 from jsonschema import _utils, _validators
+from jsonschema.exceptions import best_match
+from cfnlint.schema.exceptions import ValidationError
 
 LOGGER = logging.getLogger("cfnlint.rules.resources.properties.JsonSchema")
 
@@ -84,7 +87,7 @@ class RuleSet:
         self.pattern = "E3031"
         self.oneOf = "E2523"
         self.awsType = "E3008"
-
+        self.cfnSchema = "E3017"
 
 class JsonSchema(CloudFormationLintRule):
     """Check Base Resource Configuration"""
@@ -106,6 +109,7 @@ class JsonSchema(CloudFormationLintRule):
         "E3034": None,
         "E3037": None,
         "E3008": None,
+        "E3017": None,
     }
 
     def __init__(self):
@@ -152,11 +156,11 @@ class JsonSchema(CloudFormationLintRule):
                     repr(each) for each in sorted(schema["patternProperties"])
                 )
                 error = f"{joined} {verb} not match any of the regexes: {patterns}"
-                yield jsonschema.ValidationError(error)
+                yield ValidationError(error)
             else:
                 for extra in extras:
                     error = "Additional properties are not allowed (%s unexpected)"
-                    yield jsonschema.ValidationError(error % extra, path=[extra])
+                    yield ValidationError(error % extra, path=[extra])
 
     def json_schema_validate(self, validator, properties, path):
         matches = []
@@ -164,20 +168,33 @@ class JsonSchema(CloudFormationLintRule):
             kwargs = {}
             if hasattr(e, "extra_args"):
                 kwargs = getattr(e, "extra_args")
+            e_path = path + list(e.path)
             if len(e.path) > 0:
-                key = e.path[-1]
-                if hasattr(key, "start_mark"):
-                    kwargs["location"] = (
-                        key.start_mark.line,
-                        key.start_mark.column,
-                        key.end_mark.line,
-                        key.end_mark.column,
-                    )
+                e_path_override = getattr(e, "path_override", None)
+                if e_path_override:
+                    e_path = list(e.path_override)
+                else:
+                    key = e.path[-1]
+                    if hasattr(key, "start_mark"):
+                        kwargs["location"] = (
+                            key.start_mark.line,
+                            key.start_mark.column,
+                            key.end_mark.line,
+                            key.end_mark.column,
+                        )
+
+            e_rule = None
+            if hasattr(e, "rule"):
+                if e.rule:
+                    e_rule = e.rule
+            if not e_rule:
+                e_rule= self.child_rules[getattr(self.rules, e.validator)]
+
             matches.append(
                 RuleMatch(
-                    path + list(e.path),
+                    e_path,
                     e.message,
-                    rule=self.child_rules[getattr(self.rules, e.validator)],
+                    rule=e_rule,
                     **kwargs,
                 )
             )
@@ -218,6 +235,7 @@ class JsonSchema(CloudFormationLintRule):
             "required": _validators.required,
             "type": _validators.type,
             "uniqueItems": _validators.uniqueItems,
+            "cfnSchema": self._cfnSchema,
         }
         for js, rule_id in self.rules.__dict__.items():
             rule = self.child_rules.get(rule_id)
@@ -226,8 +244,9 @@ class JsonSchema(CloudFormationLintRule):
                     getattr(rule, "validate_configure")
                 ):
                     rule.validate_configure(cfn)
-                if hasattr(rule, "validate") and callable(getattr(rule, "validate")):
-                    validators[js] = rule.validate
+                if hasattr(rule, js) and callable(getattr(rule, js)):
+                    func = getattr(rule, js)
+                    validators[js] = func
 
         self.validator = cfnlint.schema.validator.create(
             meta_schema=_utils.load_schema("draft7"),
@@ -252,6 +271,14 @@ class JsonSchema(CloudFormationLintRule):
             applicable_validators=cfnlint.schema._legacy_validators.ignore_ref_siblings,
         )
 
+    def _cfnSchema(self, validator, properties, instance, schema):
+        schema_details = properties.split("/")
+        cfn_schema = load_resource(
+            f"cfnlint.data.AdditionalSpecs.schema.{schema_details[0]}", filename=(f"{schema_details[1]}.json")
+        )
+        cfn_validator = self.validator(cfn_schema)
+        yield from cfn_validator.iter_errors(instance)
+
     def match(self, cfn):
         """Check CloudFormation Properties"""
         matches = []
@@ -274,7 +301,7 @@ class JsonSchema(CloudFormationLintRule):
                 ):
                     try:
                         jsonschema.validate(properties, schema)
-                    except jsonschema.ValidationError as e:
+                    except ValidationError as e:
                         matches.append(
                             RuleMatch(
                                 ["Resources", resource_name, "Properties"], e.message

@@ -32,11 +32,13 @@ class ProviderSchemaManager:
 
         self._patch_path = os.path.join(
             os.path.dirname(__file__),
+            "..",
             "data",
             "ExtendedProviderSchema",
         )
         self._root_path = os.path.join(
             os.path.dirname(__file__),
+            "..",
             "data",
             "ProviderSchemas",
         )
@@ -48,7 +50,7 @@ class ProviderSchemaManager:
             self._cache["ResourceTypes"][region] = []
             self._cache["GetAtts"][region] = {}
 
-    def get_resource_schema(self, region: str, resource_type: str) -> Dict:
+    def get_resource_schema(self, region: str, resource_type: str) -> Schema:
         """Get the provider resource shcema and cache it to speed up future lookups
 
         Args:
@@ -139,7 +141,8 @@ class ProviderSchemaManager:
             with zipfile.ZipFile(filehandle, "r") as zip_ref:
                 zip_ref.extractall(directory)
 
-            for filename in os.listdir(directory):
+            filenames = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f)) and f != "__init__.py"]
+            for filename in filenames:
                 with open(f"{directory}{filename}", "r+", encoding="utf-8") as fh:
                     spec = json.load(fh)
                     spec = self._patch_provider_schema(spec, filename, "all")
@@ -175,7 +178,7 @@ class ProviderSchemaManager:
                                 e,
                             )
 
-        except Exception:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             multiprocessing_logger.debug("Issuing updating specs for %s", region)
 
     def _patch_provider_schema(
@@ -215,7 +218,7 @@ class ProviderSchemaManager:
             self.get_resource_schema(region=region, resource_type=resource_type)
             self._cache["Refs"][region][resource_type] = self._schemas[region][resource_type].get_ref()
 
-        return self._cache["GetAtts"][region][resource_type]
+        return self._cache["Refs"][region][resource_type]
 
     def update_schemas(self, force: bool):
         pass

@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT-0
 import cfnlint.helpers
 from cfnlint.data import AdditionalSpecs
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from jsonschema.exceptions import ValidationError
+from cfnlint.schema.exceptions import ValidationError
 
 class OnlyOne(CloudFormationLintRule):
     """Check Properties Resource Configuration"""

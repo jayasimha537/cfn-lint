@@ -3,10 +3,13 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
 import logging
-from typing import List
+from typing import List, Dict, Union
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 from jsonschema import validate, Draft7Validator
-
+from jsonschema.exceptions import best_match
+from jsonschema.validators import extend
+from cfnlint.schema.exceptions import ValidationError
+import re
 LOGGER = logging.getLogger("cfnlint")
 
 
@@ -18,44 +21,62 @@ class GetAtt(CloudFormationLintRule):
     description = "Validates that GetAtt parameters are to valid resources and properties of those resources"
     source_url = "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html"
     tags = ["functions", "getatt"]
+    
+    def _unbool(element, true=object(), false=object()):
+        if element is True:
+            return true
+        elif element is False:
+            return false
+        return element
 
-    def _context_picker(self, contexts, path: List[str]) -> RuleMatch:
-        match: None = None
-        enum_0_message: str = ""
-        enum_0_list: set = set()
+    def _enum(self, validator, enums, instance, schema):
+        enums.sort()
+        if instance == 0 or instance == 1:
+            unbooled = self._unbool(instance)
+            if all(unbooled != self._unbool(each) for each in enums):
+                yield ValidationError(f"{instance!r} is not one of {enums!r}")
+        elif instance not in enums:
+            if validator.is_type(instance, "string"):
+                for enum in enums:
+                    _rex = re.compile(enum)
+                    if _rex.fullmatch(instance):
+                        return
 
-        for context in contexts:
-            if context.validator == "enum":
-                if len(context.path) > 0:
-                    if context.path[0] == 0:
-                        enum_0_message = f"'{context.instance}' is not one of "
-                        enum_0_list.update(context.validator_value)
-                        match = None
-                    elif context.path[0] == 1 and not enum_0_list:
-                        match = RuleMatch(path=path, message=context.message)
-                else:
-                    # deque length is 0.  Should be a string but could be an object or another type
-                    if isinstance(context.instance, str):
-                        match = RuleMatch(path=path, message=context.message)
-                    else:
-                        match = RuleMatch(path=path, message=f"Fn::GetAtt should be a list or a string")
-
-        if enum_0_list:
-            match = RuleMatch(path=path, message=f"{enum_0_message} {list(enum_0_list)}")
-
-        return match or RuleMatch(path=path, message=f"Fn::GetAtt should be a list or a string")
-            
+            yield ValidationError(f"{instance!r} is not one of {enums!r}")
 
     def match(self, cfn):
         matches = []
         getatts = cfn.search_deep_keys("Fn::GetAtt")
         valid_getatts = cfn.get_valid_getatts()
 
-        schema = valid_getatts.json_schema("us-east-1")
+        for region in cfn.regions:
 
-        for getatt in getatts:
-            v = Draft7Validator(schema=schema)
-            for err in v.iter_errors(getatt[-1]):
-                matches.append(self._context_picker(err.context, getatt[0:-1]))  
+            schemas = valid_getatts.json_schema(region)
+
+            for getatt in getatts:
+                v = getatt[-1]
+                err: Union[None, ValidationError] = None
+                for schema in schemas.get("oneOf"):
+                    validator_schema: Union[None, Dict] = None
+                    if isinstance(v, list):
+                        if schema.get("type") == "array":
+                            validator_schema = schema
+                    elif isinstance(v, str):
+                        if schema.get("type") == "string":
+                            validator_schema = schema
+                    else:
+                        matches.append(RuleMatch(path=getatt[:-1], message=f"Fn::GetAtt should be a list or a string"))
+
+                    if validator_schema:
+                        validator = extend(validator=Draft7Validator, validators={
+                            "enum": self._enum,
+                        })(schema=validator_schema)
+                        err = best_match(validator.iter_errors(instance=v))
+                        
+
+                if err:
+                    matches.append(
+                        RuleMatch(path=getatt[:-1], message=err.message)
+                    )
 
         return matches

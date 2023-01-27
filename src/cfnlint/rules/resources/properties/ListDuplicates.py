@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT-0
 import itertools
 from typing import Sequence, Mapping
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from jsonschema import exceptions
+from cfnlint.schema.exceptions import ValidationError
 
 class ListDuplicates(CloudFormationLintRule):
     """Check if duplicates exist in a List"""
@@ -69,11 +69,11 @@ class ListDuplicates(CloudFormationLintRule):
                 seen.append(e)
         return True
 
-    def validate(self, validator, uI, instance, schema):
+    def uniqueItems(self, validator, uI, instance, schema):
         if (
             uI
             and validator.is_type(instance, "array")
             and not self._uniq(instance)
         ):
-            yield exceptions.ValidationError(f"{instance!r} has non-unique elements")
+            yield ValidationError(f"{instance!r} has non-unique elements")
 

@@ -5,6 +5,7 @@ SPDX-License-Identifier: MIT-0
 import warnings
 from cfnlint.helpers import VALID_PARAMETER_TYPES_LIST
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 
 
 class Join(CloudFormationLintRule):
@@ -16,14 +17,54 @@ class Join(CloudFormationLintRule):
     source_url = "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-join.html"
     tags = ["functions", "join"]
 
+    _intrinsic_types = {
+        "Fn::Base64": {
+            "ReturnTypes": ["Singular"],
+        },
+        "Fn::Cidr": {
+            "ReturnTypes": ["List"],
+        },
+        "Fn::FindInMap": {
+            "ReturnTypes": ["Singular", "List"],
+        },
+        "Fn::GetAZs": {
+            "ReturnTypes": ["List"],
+        },
+        "Fn::GetAtt": {
+            "ReturnTypes": ["Singular", "List"],
+        },
+        "Fn::If": {
+            "ReturnTypes": ["Singular", "List"],
+        },
+        "Fn::ImportValue": {
+            "ReturnTypes": ["Singular"],
+        },
+        "Fn::Join": {
+            "ReturnTypes": ["Singular"],
+        },
+        "Fn::Select": {
+            "ReturnTypes": ["Singular", "List"],
+        },
+        "Fn::Split": {
+            "ReturnTypes": ["List"],
+        },
+        "Fn::Sub": {
+            "ReturnTypes": ["Singular"],
+        },
+        "Fn::Transform": {
+            "ReturnTypes": [],
+        },
+        "Ref": {
+            "ReturnTypes": ["Singular", "List"],
+        },
+    }
+
     def __init__(self):
         """Initialize the rule"""
         super().__init__()
         self.list_supported_functions = []
         self.singular_supported_functions = []
-        for intrinsic_type, intrinsic_value in (
-            {}.get("us-east-1", {}).get("IntrinsicTypes", {}).items()
-        ):
+        for intrinsic_type, intrinsic_value in self._intrinsic_types.items():
             if "List" in intrinsic_value.get("ReturnTypes", []):
                 self.list_supported_functions.append(intrinsic_type)
             if "Singular" in intrinsic_value.get("ReturnTypes", []):
@@ -60,22 +101,18 @@ class Join(CloudFormationLintRule):
             return True
         return False
 
-    def _is_getatt_a_list(self, parameter, get_atts):
+    def _is_getatt_a_list(self, parameter, get_atts) -> bool:
         """Is a GetAtt a List"""
-
-        for resource, attributes in get_atts.items():
-            for attribute_name, attribute_values in attributes.items():
-                if resource == parameter[0] and attribute_name == "*":
-                    if attribute_values.get("PrimitiveItemType"):
-                        return "FALSE"
-                    if attribute_values.get("Type") == "List":
-                        return "TRUE"
-                    return "UNKNOWN"
-                if resource == parameter[0] and attribute_name == parameter[1]:
-                    if attribute_values.get("Type") == "List":
-                        return "TRUE"
-
-        return "FALSE"
+        try:
+            getatt = get_atts.match('us-east-1', parameter)
+            if getatt.get("type") == "array":
+                return True
+            else:
+                return False
+        except:
+            # this means we can't match the get_att.  This is 
+            # covered by another rule
+            return True
 
     def _match_string_objs(self, join_string_objs, cfn, path):
         """Check join list"""
@@ -102,12 +139,11 @@ class Join(CloudFormationLintRule):
                                 )
                             )
                     elif key in ["Fn::GetAtt"]:
-                        if (
+                        if ( not (
                             self._is_getatt_a_list(
                                 self._normalize_getatt(value), get_atts
                             )
-                            == "FALSE"
-                        ):
+                        )):
                             message = "Fn::Join must use a list at {0}"
                             matches.append(
                                 RuleMatch(
@@ -172,8 +208,6 @@ class Join(CloudFormationLintRule):
 
     def match(self, cfn):
         matches = []
-
-        warnings.warn("This rule needs to be rewritten", RuntimeWarning)
 
         join_objs = cfn.search_deep_keys("Fn::Join")
 

@@ -1,6 +1,6 @@
 from functools import lru_cache
 from typing import Dict, Sequence, Union, List
-
+import json
 from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 from cfnlint.helpers import RegexDict
 
@@ -26,13 +26,13 @@ class GetAtts:
     def add(self, resource_name: str, resource_type: str) -> None:
         for region in self._regions:
             if resource_name not in self._getatts[region]:
-                self._getatts[region][resource_name] = {}
+                self._getatts[region][resource_name] = RegexDict()
                 if resource_type.startswith(self._astrik_string_types):
-                    self._getatts[region][resource_name]["*"] = {"type": "string"}
+                    self._getatts[region][resource_name]["Outputs..*"] = {"type": "string"}
                 elif resource_type.startswith(
                     self._astrik_unknown_types
                 ) or resource_type.endswith("::MODULE"):
-                    self._getatts[region][resource_name]["*"] = {}
+                    self._getatts[region][resource_name][".*"] = {}
                 else:
                     for (
                         attr_name,
@@ -45,41 +45,61 @@ class GetAtts:
     def json_schema(self, region: str) -> Dict:
 
         schema = {"oneOf": []}
-        strings = {
+        schema_strings = {
             "type": "string",
             "enum": [],
+        }
+        schema_array = {
+            "type": "array",
+            "items": [
+                {"type": "string", "enum": []},
+                {"type": ["string", "object"]}
+            ],
+            "allOf": []
         }
 
         for resource_name, attributes in self._getatts[region].items():
             attr_enum = []
             for attribute in attributes:
                 attr_enum.append(attribute)
+                schema_strings["enum"].append(f"{resource_name}.{attribute}")
 
-                strings["enum"].append(f"{resource_name}.{attribute}")
-            schema["oneOf"].append(
-                {
-                    "type": "array",
+            schema_array["items"][0]["enum"].append(resource_name)
+            schema_array["allOf"].append({
+                "if": {
                     "items": [
-                        {"type": "string", "enum": [resource_name]},
-                        {"type": "string", "enum": attr_enum},
-                    ],
-                }
-            )
-
-        schema["oneOf"].append(
-            {
-                "type": "array",
-                "items": [
-                    {"type": "string", "enum": [resource_name]},
-                    {"type": "object", "properties": {"Ref": {"type": "string"}}},
-                ],
-            }
-        )
-        schema["oneOf"].append(strings)
+                        {"type": "string", "const": resource_name},
+                        {"type": ["string", "object"]}
+                    ]
+                },
+                "then": {
+                    "if": {
+                        "items": [
+                            {"type": "string", "const": resource_name},
+                            {"type": "string"}
+                        ]
+                    },
+                    "then": {
+                        "items": [
+                            {"type": "string", "const": resource_name},
+                            {"type": "string", "enum": attr_enum}
+                        ]
+                    },
+                    "else": {
+                        "items": [
+                            {"type": "string", "const": resource_name},
+                            {"type": "object", "properties": {"Ref": {"type": "string"}}}
+                        ]
+                    },
+                },
+                "else": {}
+            })
+            
+        schema["oneOf"].append(schema_array)
+        schema["oneOf"].append(schema_strings)
         return schema
 
-    @lru_cache
-    def match(self, getatt: Union[str, List[str]], region: str) -> Dict:
+    def match(self, region: str, getatt: Union[str, List[str]]) -> Dict:
         if isinstance(getatt, str):
             getatt = getatt.split(".", 1)
 
@@ -88,7 +108,7 @@ class GetAtts:
                 raise (TypeError("Invalid GetAtt size"))
 
             try:
-                result = self._getatts.get([region][getatt[0]].get(getatt[1]))
+                result = self._getatts.get(region, {}).get(getatt[0], {}).get(getatt[1])
                 if result is None:
                     raise ValueError("Attribute for resource doesn't exist")
                 return result

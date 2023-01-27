@@ -2,10 +2,9 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-import json
-import warnings
-from cfnlint.rules import CloudFormationLintRule, RuleMatch
-
+from cfnlint.rules import CloudFormationLintRule
+from cfnlint.template.template import Template
+from cfnlint.schema.exceptions import ValidationError
 
 class AllowedValue(CloudFormationLintRule):
     """Check if parameters have a valid value"""
@@ -17,117 +16,32 @@ class AllowedValue(CloudFormationLintRule):
     tags = ["parameters", "resources", "property", "allowed value"]
 
 
-    def check_value_ref(self, value, path, **kwargs):
-        """Check Ref"""
-        matches = []
+    def __init__(self):
+        super().__init__()
+        self.parameters = {}
 
-        cfn = kwargs.get("cfn")
-        if "Fn::If" in path:
-            self.logger.debug(
-                "Not able to guarentee that the default value hasn't been conditioned out"
-            )
-            return matches
-        if path[0] == "Resources" and "Condition" in cfn.template.get(path[0], {}).get(
-            path[1]
-        ):
-            self.logger.debug(
-                "Not able to guarentee that the default value "
-                "hasn't been conditioned out"
-            )
-            return matches
 
-        allowed_value_specs = kwargs.get("value_specs", {}).get("AllowedValues", {})
+    def initialize(self, cfn: Template):
+        """Initialize the rule"""
+        self.parameters = cfn.get_parameters()
 
-        if allowed_value_specs:
-            description = f"Valid values are {json.dumps(allowed_value_specs)}"
-            if value in cfn.template.get("Parameters", {}):
-                param = cfn.template.get("Parameters").get(value, {})
-                parameter_values = param.get("AllowedValues")
-                default_value = param.get("Default")
-                parameter_type = param.get("Type")
-                if isinstance(parameter_type, str):
-                    if (
-                        (not parameter_type.startswith("List<"))
-                        and (
-                            not parameter_type.startswith("AWS::SSM::Parameter::Value<")
+    def validate(self, ref, enums):
+        p = self.parameters.get(ref, {})
+        if isinstance(p, dict):
+            p_default = p.get("Default", None)
+            if isinstance(p_default, str):
+                if p_default not in enums:
+                    yield ValidationError(f"{p_default!r} is not one of {enums!r}",
+                        rule=self,
+                        path_override=["Parameters", ref, "Default"]
+                    )
+
+            p_avs = p.get("AllowedValues", [])
+            if isinstance(p_avs, list):
+                for p_av in p_avs:
+                    if p_av not in enums:
+                        yield ValidationError(f"{p_av!r} is not one of {enums!r}",
+                           rule=self,
+                           path_override=["Parameters", ref, "AllowedValues"]
                         )
-                        and parameter_type not in ["CommaDelimitedList", "List<String>"]
-                    ):
-                        # Check Allowed Values
-                        if parameter_values:
-                            for index, allowed_value in enumerate(parameter_values):
-                                if str(allowed_value) not in allowed_value_specs:
-                                    param_path = [
-                                        "Parameters",
-                                        value,
-                                        "AllowedValues",
-                                        index,
-                                    ]
-                                    message = "You must specify a valid allowed value for {0} ({1}). {2}"
-                                    matches.append(
-                                        RuleMatch(
-                                            param_path,
-                                            message.format(
-                                                value, allowed_value, description
-                                            ),
-                                        )
-                                    )
-                        if default_value:
-                            # Check Default, only if no allowed Values are specified in the parameter (that's covered by E2015)
-                            if str(default_value) not in allowed_value_specs:
-                                param_path = ["Parameters", value, "Default"]
-                                message = "You must specify a valid Default value for {0} ({1}). {2}"
-                                matches.append(
-                                    RuleMatch(
-                                        param_path,
-                                        message.format(
-                                            value, default_value, description
-                                        ),
-                                    )
-                                )
-
-        return matches
-
-    def check(self, cfn, properties, value_specs, property_specs, path):
-        """Check itself"""
-        matches = []
-        for p_value, p_path in properties.items_safe(path[:]):
-            for prop in p_value:
-                if prop in value_specs:
-                    value = value_specs.get(prop).get("Value", {})
-                    if value:
-                        value_type = value.get("ValueType", "")
-                        property_type = (
-                            property_specs.get("Properties").get(prop).get("Type")
-                        )
-                        matches.extend(
-                            cfn.check_value(
-                                p_value,
-                                prop,
-                                p_path,
-                                check_ref=self.check_value_ref,
-                                value_specs={}.get(cfn.regions[0])
-                                .get("ValueTypes")
-                                .get(value_type, {}),
-                                cfn=cfn,
-                                property_type=property_type,
-                                property_name=prop,
-                            )
-                        )
-
-        return matches
-
-    def match_resource_sub_properties(self, properties, property_type, path, cfn):
-        """Match for sub properties"""
-        matches = []
-
-        return matches
-
-    def match_resource_properties(self, properties, resource_type, path, cfn):
-        """Check CloudFormation Properties"""
-        matches = []
-
-        return matches
-
-    def match(self, cfn):
-        warnings.warn("This rule needs to be rewritten", RuntimeWarning)
+       
