@@ -118,12 +118,15 @@ class SubNeeded(CloudFormationLintRule):
                 not "Fn::Sub" in parameter_string_path
                 and parameter_string_path[-2] not in self.exceptions
             ):
-                if (
-                    var_stripped in refs or var_stripped in getatts
-                ) or "DefinitionString" in parameter_string_path:
-                    # Remove the last item (the variable) to prevent multiple errors on 1 line errors
-                    path = parameter_string_path[:-1]
-                    message = f'Found an embedded parameter "{var}" outside of an "Fn::Sub" at {"/".join(map(str, path))}'
-                    matches.append(RuleMatch(path, message))
+                try:
+                    if (
+                        var_stripped in refs or getatts.match(cfn.regions[0], var_stripped)
+                    ) or "DefinitionString" in parameter_string_path:
+                        # Remove the last item (the variable) to prevent multiple errors on 1 line errors
+                        path = parameter_string_path[:-1]
+                        message = f'Found an embedded parameter "{var}" outside of an "Fn::Sub" at {"/".join(map(str, path))}'
+                        matches.append(RuleMatch(path, message))
+                except (ValueError, TypeError):
+                    pass
 
         return matches

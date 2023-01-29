@@ -19,7 +19,7 @@ from cfnlint.helpers import (
     load_resource
 )
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER, ResourceNotFoundError
 from cfnlint.template.template import Template
 import cfnlint.schema.validator
 import cfnlint.schema._legacy_validators
@@ -160,7 +160,7 @@ class JsonSchema(CloudFormationLintRule):
             else:
                 for extra in extras:
                     error = "Additional properties are not allowed (%s unexpected)"
-                    yield ValidationError(error % extra, path=[extra])
+                    yield ValidationError(error % extra, path_override=[extra])
 
     def json_schema_validate(self, validator, properties, path):
         matches = []
@@ -322,10 +322,9 @@ class JsonSchema(CloudFormationLintRule):
                         schema = PROVIDER_SCHEMA_MANAGER.get_resource_schema(
                             region, t
                         ).json_schema()
-                    except FileNotFoundError as e:
-                        if e.args[0] == region:
-                            LOGGER.info("No specs for region %s", region)
-                            continue
+                    except ResourceNotFoundError as e:
+                        LOGGER.info(e)
+                        continue
                     if schema:
                         cfn_validator = self.validator(schema)
                         path = ["Resources", n, "Properties"]

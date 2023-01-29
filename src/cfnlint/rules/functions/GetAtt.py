@@ -50,9 +50,7 @@ class GetAtt(CloudFormationLintRule):
         valid_getatts = cfn.get_valid_getatts()
 
         for region in cfn.regions:
-
             schemas = valid_getatts.json_schema(region)
-
             for getatt in getatts:
                 v = getatt[-1]
                 err: Union[None, ValidationError] = None

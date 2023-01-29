@@ -5,7 +5,13 @@ SPDX-License-Identifier: MIT-0
 import cfnlint.helpers
 from cfnlint.helpers import REGISTRY_SCHEMAS
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER, ResourceNotFoundError
+from jsonschema import Draft7Validator
+from jsonschema.validators import extend
+from cfnlint.helpers import load_resource
+from cfnlint.data.AdditionalSpecs.schema import resource
+from cfnlint.schema.exceptions import ValidationError
+
 
 class Configuration(CloudFormationLintRule):
     """Check Base Resource Configuration"""
@@ -18,142 +24,86 @@ class Configuration(CloudFormationLintRule):
     source_url = "https://github.com/aws-cloudformation/cfn-python-lint"
     tags = ["resources"]
 
+    def __init__(self):
+        super().__init__()
+        schema = cfnlint.helpers.load_resource(resource, "configuration.json")
+        self.regions = []
+        self.validator = extend(
+            validator=Draft7Validator,
+            validators={
+                "cfnType": self._cfnType,
+                "cfnPropertiesRequired": self._cfnPropertiesRequired
+            },
+        )(schema=schema)
+
+    def initialize(self, cfn):
+        super().initialize(cfn)
+        self.regions = cfn.regions
+
+    def _cfnType(self, validator, iT, instance, schema):
+        if not validator.is_type(instance, "string"):
+            return
+        for region in self.regions:
+            if instance in PROVIDER_SCHEMA_MANAGER.get_resource_types(region=region):
+                continue
+            if not instance.startswith(
+                ("Custom::", "AWS::Serverless::")
+            ) and not instance.endswith("::MODULE"):
+                yield ValidationError(
+                    f"Resource type `{instance}` does not exist in '{region}'"
+                )
+
+    def _cfnPropertiesRequired(self, validator, pR, instance, schema):
+        r_type = instance.get("Type")
+        # validated someplace else
+        if not validator.is_type(r_type, "string"):
+            return
+        for region in self.regions:
+            try:
+                schema = PROVIDER_SCHEMA_MANAGER.get_resource_schema(region=region, resource_type=r_type)
+                if schema.json_schema().get("required", []):
+                    if (
+                        r_type == "AWS::CloudFormation::WaitCondition"
+                        and "CreationPolicy" in instance.keys()
+                    ):
+                        self.logger.debug(
+                            "Exception to required properties section as CreationPolicy is defined."
+                        )
+                    elif "Properties" not in instance:
+                        yield ValidationError(
+                            f"Resource type `{r_type}` has required properties"
+                        )
+            except ResourceNotFoundError:
+                continue
+
     def _check_resource(self, cfn, resource_name, resource_values):
         """Check Resource"""
-
-        valid_attributes = [
-            "Condition",
-            "CreationPolicy",
-            "DeletionPolicy",
-            "DependsOn",
-            "Metadata",
-            "Properties",
-            "Type",
-            "UpdatePolicy",
-            "UpdateReplacePolicy",
-        ]
-
-        valid_custom_attributes = [
-            "Condition",
-            "DeletionPolicy",
-            "DependsOn",
-            "Metadata",
-            "Properties",
-            "Type",
-            "UpdateReplacePolicy",
-            "Version",
-        ]
-
         matches = []
-        if not isinstance(resource_values, dict):
-            message = "Resource not properly configured at {0}"
-            matches.append(
-                RuleMatch(["Resources", resource_name], message.format(resource_name))
-            )
-            return matches
 
-        # validate condition is a string
-        condition = resource_values.get("Condition", "")
-        if not isinstance(condition, str):
-            message = "Condition for resource {0} should be a string"
-            matches.append(
-                RuleMatch(
-                    ["Resources", resource_name, "Condition"],
-                    message.format(resource_name),
-                )
-            )
+        for e in self.validator.iter_errors(instance=resource_values):
+            kwargs = {}
+            e_path = ["Resources", resource_name] + list(e.path)
+            if len(e.path) > 0:
+                e_path_override = getattr(e, "path_override", None)
+                if e_path_override:
+                    e_path = list(e.path_override)
+                else:
+                    key = e.path[-1]
+                    if hasattr(key, "start_mark"):
+                        kwargs["location"] = (
+                            key.start_mark.line,
+                            key.start_mark.column,
+                            key.end_mark.line,
+                            key.end_mark.column,
+                        )
 
-        resource_type = resource_values.get("Type", "")
-        if not isinstance(resource_type, str):
-            message = "Type has to be a string at {0}"
             matches.append(
                 RuleMatch(
-                    ["Resources", resource_name],
-                    message.format("/".join(["Resources", resource_name])),
+                    e_path,
+                    e.message,
+                    **kwargs,
                 )
             )
-            return matches
-
-        # Type is valid continue analysis
-        if (
-            resource_type.startswith("Custom::")
-            or resource_type == "AWS::CloudFormation::CustomResource"
-        ):
-            check_attributes = valid_custom_attributes
-        else:
-            check_attributes = valid_attributes
-
-        for property_key, _ in resource_values.items():
-            if property_key not in check_attributes:
-                message = "Invalid resource attribute {0} for resource {1}"
-                matches.append(
-                    RuleMatch(
-                        ["Resources", resource_name, property_key],
-                        message.format(property_key, resource_name),
-                    )
-                )
-
-        if not resource_type:
-            message = "Type not defined for resource {0}"
-            matches.append(
-                RuleMatch(["Resources", resource_name], message.format(resource_name))
-            )
-        elif not isinstance(resource_type, str):
-            message = "Type has to be a string at {0}"
-            matches.append(
-                RuleMatch(
-                    ["Resources", resource_name],
-                    message.format("/".join(["Resources", resource_name])),
-                )
-            )
-        else:
-            self.logger.debug("Check resource types by region...")
-            for region, specs in {}.items():
-                if region in cfn.regions:
-                    if resource_type not in PROVIDER_SCHEMA_MANAGER.get_resource_types(region) and resource_type not in [
-                        s["typeName"] for s in REGISTRY_SCHEMAS
-                    ]:
-                        if not resource_type.startswith(
-                            ("Custom::", "AWS::Serverless::")
-                        ) and not resource_type.endswith("::MODULE"):
-                            message = "Invalid or unsupported Type {0} for resource {1} in {2}"
-                            matches.append(
-                                RuleMatch(
-                                    ["Resources", resource_name, "Type"],
-                                    message.format(
-                                        resource_type, resource_name, region
-                                    ),
-                                )
-                            )
-
-        if "Properties" not in resource_values:
-            resource_spec = {}
-            if resource_type in resource_spec["ResourceTypes"]:
-                properties_spec = resource_spec["ResourceTypes"][resource_type][
-                    "Properties"
-                ]
-                # pylint: disable=len-as-condition
-                if len(properties_spec) > 0:
-                    required = 0
-                    for _, property_spec in properties_spec.items():
-                        if property_spec.get("Required", False):
-                            required += 1
-                    if required > 0:
-                        if (
-                            resource_type == "AWS::CloudFormation::WaitCondition"
-                            and "CreationPolicy" in resource_values.keys()
-                        ):
-                            self.logger.debug(
-                                "Exception to required properties section as CreationPolicy is defined."
-                            )
-                        else:
-                            message = "Properties not defined for resource {0}"
-                            matches.append(
-                                RuleMatch(
-                                    ["Resources", resource_name],
-                                    message.format(resource_name),
-                                )
-                            )
 
         return matches
 

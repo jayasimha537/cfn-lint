@@ -16,4 +16,4 @@ class AwsTypes():
         pass
 
     def availability_zones(self) -> None:
-        
+        pass

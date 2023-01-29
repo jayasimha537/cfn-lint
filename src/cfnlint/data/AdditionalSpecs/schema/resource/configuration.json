@@ -1,0 +1,66 @@
+{
+  "type": "object",
+  "properties": {
+    "Condition": {
+      "type": "string"
+    },
+    "DeletionPolicy": {
+      "type": "string",
+      "enum": [
+        "Delete",
+        "Retain",
+        "Snapshot"
+      ]
+    },
+    "DependsOn": {
+      "type": ["string", "array"],
+      "items": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "Metadata": {
+      "type": "object"
+    },
+    "Properties": {
+      "type": "object"
+    },
+    "Type": {
+      "type": "string",
+      "cfnType": true
+    },
+    "UpdateReplacePolicy": {
+      "type": "string",
+      "enum": [
+        "Delete",
+        "Retain",
+        "Snapshot"
+      ]
+    }
+  },
+  "cfnPropertiesRequired": true,
+  "if": {
+    "properties": {
+      "Type": {
+        "pattern": "(AWS::CloudFormation::CustomResource|Custom::.*)"
+      }
+    }
+  },
+  "then": {
+    "Version": {
+      "type": "string"
+    }
+  },
+  "else": {
+    "properties": {
+      "CreationPolicy": {
+        "type": "object"
+      },
+      "UpdatePolicy": {
+        "type": "object"
+      }
+    }
+  },
+  "additionalProperties": "false"
+}

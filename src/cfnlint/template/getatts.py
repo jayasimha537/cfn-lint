@@ -1,7 +1,7 @@
 from functools import lru_cache
-from typing import Dict, Sequence, Union, List
+from typing import Dict, Sequence, Union, List, Optional, Iterable, Tuple
 import json
-from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER, ResourceNotFoundError
 from cfnlint.helpers import RegexDict
 
 
@@ -34,13 +34,16 @@ class GetAtts:
                 ) or resource_type.endswith("::MODULE"):
                     self._getatts[region][resource_name][".*"] = {}
                 else:
-                    for (
-                        attr_name,
-                        attr_value,
-                    ) in PROVIDER_SCHEMA_MANAGER.get_type_getatts(
-                        resource_type=resource_type, region=region
-                    ).items():
-                        self._getatts[region][resource_name][attr_name] = attr_value
+                    try:
+                        for (
+                            attr_name,
+                            attr_value,
+                        ) in PROVIDER_SCHEMA_MANAGER.get_type_getatts(
+                            resource_type=resource_type, region=region
+                        ).items():
+                            self._getatts[region][resource_name][attr_name] = attr_value
+                    except ResourceNotFoundError:
+                        continue
 
     def json_schema(self, region: str) -> Dict:
 
@@ -117,3 +120,9 @@ class GetAtts:
 
         else:
             raise (TypeError("Invalid GetAtt structure"))
+
+    def items(self, region: Optional[str]=None) -> Iterable[Tuple[str, Dict]]:
+        if region is None:
+            region = self._regions[0]
+            for k, v in self._getatts.get(region, {}).items():
+                yield k, v

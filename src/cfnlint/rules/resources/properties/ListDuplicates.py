@@ -18,8 +18,11 @@ class ListDuplicates(CloudFormationLintRule):
     )
     source_url = "https://github.com/aws-cloudformation/cfn-python-lint/blob/main/docs/cfn-resource-specification.md#allowedvalue"
     tags = ["resources", "property", "list"]
+    child_rules = {
+        "I3037": None,
+    }
 
-    def _unbool(element, true=object(), false=object()):
+    def _unbool(self, element, true=object(), false=object()):
         if element is True:
             return true
         elif element is False:
@@ -61,7 +64,6 @@ class ListDuplicates(CloudFormationLintRule):
             seen = []
             for e in container:
                 e = self._unbool(e)
-
                 for i in seen:
                     if self._equal(i, e):
                         return False
@@ -71,9 +73,12 @@ class ListDuplicates(CloudFormationLintRule):
 
     def uniqueItems(self, validator, uI, instance, schema):
         if (
-            uI
-            and validator.is_type(instance, "array")
+            validator.is_type(instance, "array")
             and not self._uniq(instance)
         ):
-            yield ValidationError(f"{instance!r} has non-unique elements")
-
+            if uI:
+                yield ValidationError(f"{instance!r} has non-unique elements")
+            else:
+                yield ValidationError(f"{instance!r} has non-unique elements",
+                    rule=self.child_rules["I3037"],
+                )

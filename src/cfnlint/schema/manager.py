@@ -22,6 +22,10 @@ from cfnlint.schema.schema import Schema
 
 LOGGER = logging.getLogger(__name__)
 
+class ResourceNotFoundError(Exception):
+    def __init__(self, type: str, region: str):
+        super().__init__(f"Resource type '{type}' is not found in '{region}'")
+
 class ProviderSchemaManager:
     _schemas: Dict[str, Schema] = {}
     _provider_schema_modules: Dict[str, Any] = {}
@@ -67,11 +71,14 @@ class ProviderSchemaManager:
                 f"cfnlint.data.ProviderSchemas.{region}", fromlist=[""]
             )
             # load the schema
-            self._schemas[region][resource_type] = Schema(
-                load_resource(
-                    self._provider_schema_modules[region], filename=(f"{rt}.json")
+            try:
+                self._schemas[region][resource_type] = Schema(
+                    load_resource(
+                        self._provider_schema_modules[region], filename=(f"{rt}.json")
+                    )
                 )
-            )
+            except:
+                raise ResourceNotFoundError(resource_type, region)
             return self._schemas[region][resource_type]
         return schema
 
