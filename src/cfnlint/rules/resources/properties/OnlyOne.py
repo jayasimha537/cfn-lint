@@ -2,9 +2,7 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-import cfnlint.helpers
-from cfnlint.data import AdditionalSpecs
-from cfnlint.rules import CloudFormationLintRule, RuleMatch
+from cfnlint.rules import CloudFormationLintRule
 from cfnlint.schema.exceptions import ValidationError
 
 class OnlyOne(CloudFormationLintRule):
@@ -20,3 +18,26 @@ class OnlyOne(CloudFormationLintRule):
     source_url = "https://github.com/aws-cloudformation/cfn-python-lint"
     tags = ["resources"]
 
+    def oneOf(self, validator, oneOf, instance, schema):
+        subschemas = enumerate(oneOf)
+        all_errors = []
+        for index, subschema in subschemas:
+            errs = list(validator.descend(instance, subschema, schema_path=index))
+            if not errs:
+                first_valid = subschema
+                break
+            all_errors.extend(errs)
+        else:
+            yield ValidationError(
+                f"{instance!r} is not valid under any of the given schemas",
+                context=all_errors,
+            )
+
+        more_valid = [
+            each for _, each in subschemas
+            if validator.evolve(schema=each).is_valid(instance)
+        ]
+        if more_valid:
+            more_valid.append(first_valid)
+            reprs = ", ".join(repr(schema) for schema in more_valid)
+            yield ValidationError(f"{instance!r} is valid under each of {reprs}")

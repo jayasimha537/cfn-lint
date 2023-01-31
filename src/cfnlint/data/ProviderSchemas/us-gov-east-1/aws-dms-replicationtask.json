@@ -78,7 +78,6 @@
  "createOnlyProperties": [
   "/properties/ResourceIdentifier",
   "/properties/TargetEndpointArn",
-  "/properties/Tags",
   "/properties/ReplicationInstanceArn",
   "/properties/SourceEndpointArn"
  ],

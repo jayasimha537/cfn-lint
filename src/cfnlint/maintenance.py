@@ -21,7 +21,6 @@ import cfnlint
 import cfnlint.data.AdditionalSpecs
 from cfnlint.helpers import (
     SPEC_REGIONS,
-    apply_json_patch,
     get_url_content,
     url_has_newer_version,
 )
@@ -127,32 +126,6 @@ def update_documentation(rules):
                 )
             )
         new_file.write("\n\\* experimental rules\n")
-
-
-def patch_spec(content: Dict, region: str):
-    """Patch the spec file"""
-    LOGGER.info('Patching spec file for region "%s"', region)
-
-    append_dir = os.path.join(
-        os.path.dirname(__file__), "data", "ExtendedSpecs", region
-    )
-    for dirpath, _, filenames in os.walk(append_dir):
-        filenames.sort()
-        for filename in fnmatch.filter(filenames, "*.json"):
-            file_path = os.path.basename(filename)
-            module = dirpath.replace(f"{append_dir}", f"{region}").replace(
-                os.path.sep, "."
-            )
-            LOGGER.info("Processing %s/%s", module, file_path)
-            all_patches = jsonpatch.JsonPatch(
-                cfnlint.helpers.load_resource(
-                    f"cfnlint.data.ExtendedSpecs.{module}", file_path
-                )
-            )
-
-            content = apply_json_patch(content, all_patches, region)
-
-    return content
 
 
 def update_iam_policies():

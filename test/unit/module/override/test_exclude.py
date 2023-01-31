@@ -9,6 +9,8 @@ import cfnlint.helpers
 from cfnlint.rules import RulesCollection
 from cfnlint.rules.resources.Configuration import Configuration  # pylint: disable=E0401
 from cfnlint.runner import Runner
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.schema.patch import SchemaPatch
 
 
 class TestExclude(BaseTestCase):
@@ -18,22 +20,24 @@ class TestExclude(BaseTestCase):
         """Setup"""
         self.collection = RulesCollection()
         self.collection.register(Configuration())
+        self.regions = ["us-east-1"]
 
     def tearDown(self):
         """Tear Down"""
         # Reset the Spec override to prevent other tests to fail
-        cfnlint.helpers.initialize_specs()
+        PROVIDER_SCHEMA_MANAGER.reset()
 
     def test_success_run(self):
         """Success test"""
         filename = "test/fixtures/templates/good/generic.yaml"
         template = self.load_template(filename)
-        with open("test/fixtures/templates/override_spec/exclude.json") as fp:
-            custom_spec = json.load(fp)
+        with open("test/fixtures/templates/override_spec/exclude.json") as fp:  
+            p = json.load(fp)
+            schema_patch = SchemaPatch.from_dict(p)
 
-        cfnlint.helpers.set_specs(custom_spec)
+        PROVIDER_SCHEMA_MANAGER.patch(schema_patch, regions=self.regions)
 
-        good_runner = Runner(self.collection, filename, template, ["us-east-1"], [])
+        good_runner = Runner(self.collection, filename, template, self.regions, [])
         self.assertEqual([], good_runner.run())
 
     def test_fail_run(self):
@@ -41,10 +45,12 @@ class TestExclude(BaseTestCase):
         filename = "test/fixtures/templates/bad/override/exclude.yaml"
         template = self.load_template(filename)
 
-        with open("test/fixtures/templates/override_spec/exclude.json") as fp:
-            custom_spec = json.load(fp)
-        cfnlint.helpers.set_specs(custom_spec)
+        with open("test/fixtures/templates/override_spec/exclude.json") as fp:  
+            p = json.load(fp)
+            schema_patch = SchemaPatch.from_dict(p)
 
-        bad_runner = Runner(self.collection, filename, template, ["us-east-1"], [])
+        PROVIDER_SCHEMA_MANAGER.patch(schema_patch, regions=self.regions)
+
+        bad_runner = Runner(self.collection, filename, template, self.regions, [])
         errs = bad_runner.run()
         self.assertEqual(2, len(errs))

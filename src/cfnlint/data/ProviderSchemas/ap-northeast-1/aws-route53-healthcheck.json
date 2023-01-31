@@ -150,7 +150,10 @@
     "Type"
    ],
    "additionalProperties": false,
-   "cfnSchema": "aws-route53-healthcheck/healthcheckconfig"
+   "cfnSchema": [
+    "aws-route53-healthcheck/healthcheckconfig",
+    "aws-route53-healthcheck/healthcheckconfig-type-inclusive"
+   ]
   },
   "HealthCheckTags": {
    "type": "array",

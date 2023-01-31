@@ -63,8 +63,7 @@
  ],
  "createOnlyProperties": [
   "/properties/SubscriptionName",
-  "/properties/SourceIds",
-  "/properties/Tags"
+  "/properties/SourceIds"
  ],
  "primaryIdentifier": [
   "/properties/Id"

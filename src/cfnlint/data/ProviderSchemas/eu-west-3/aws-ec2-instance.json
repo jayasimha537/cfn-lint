@@ -479,6 +479,10 @@
    },
    "required": [
     "DeviceName"
+   ],
+   "cfnSchema": [
+    "aws-ec2-instance/blockdevicemapping-virtualname-exclusive",
+    "aws-ec2-instance/blockdevicemapping-onlyone"
    ]
   },
   "Tag": {
@@ -536,5 +540,9 @@
   "/properties/PublicDnsName",
   "/properties/PrivateDnsName",
   "/properties/PrivateIp"
+ ],
+ "cfnSchema": [
+  "aws-ec2-instance/required",
+  "aws-ec2-instance/exclusive"
  ]
 }

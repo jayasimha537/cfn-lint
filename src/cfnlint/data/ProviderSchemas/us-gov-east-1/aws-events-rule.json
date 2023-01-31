@@ -491,5 +491,6 @@
  "readOnlyProperties": [
   "/properties/Id",
   "/properties/Arn"
- ]
+ ],
+ "cfnSchema": "aws-events-rule/required"
 }

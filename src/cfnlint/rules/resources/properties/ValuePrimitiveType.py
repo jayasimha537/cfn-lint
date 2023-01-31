@@ -134,7 +134,7 @@ class ValuePrimitiveType(CloudFormationLintRule):
                                             return
                             if v not in valid_refs:
                                 # Picked up by another rule
-                                continue
+                                return
                             yield ValidationError(
                                 f"{instance!r} is not of type {reprs}", extra_args={}
                             )
@@ -149,7 +149,7 @@ class ValuePrimitiveType(CloudFormationLintRule):
                             return
                         elif k in FUNCTIONS:
                             for t in types:
-                                if t in ["string", "integer", "boolane"]:
+                                if t in ["string", "integer", "boolean"]:
                                     return
                             yield ValidationError(
                                 f"{instance!r} is not of type {reprs}", extra_args={}

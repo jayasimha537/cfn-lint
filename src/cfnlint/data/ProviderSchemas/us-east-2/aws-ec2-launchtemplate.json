@@ -330,7 +330,10 @@
     "DeviceName": {
      "type": "string"
     }
-   }
+   },
+   "cfnSchema": [
+    "aws-ec2-launchtemplate/blockdevicemapping-virtualname"
+   ]
   },
   "Monitoring": {
    "type": "object",

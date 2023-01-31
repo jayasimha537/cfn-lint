@@ -90,7 +90,6 @@
  "createOnlyProperties": [
   "/properties/KmsKeyId",
   "/properties/ResourceIdentifier",
-  "/properties/Tags",
   "/properties/ReplicationSubnetGroupIdentifier",
   "/properties/PubliclyAccessible"
  ],

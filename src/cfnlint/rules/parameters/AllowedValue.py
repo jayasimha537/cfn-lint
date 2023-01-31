@@ -20,7 +20,6 @@ class AllowedValue(CloudFormationLintRule):
         super().__init__()
         self.parameters = {}
 
-
     def initialize(self, cfn: Template):
         """Initialize the rule"""
         self.parameters = cfn.get_parameters()
@@ -29,7 +28,7 @@ class AllowedValue(CloudFormationLintRule):
         p = self.parameters.get(ref, {})
         if isinstance(p, dict):
             p_default = p.get("Default", None)
-            if isinstance(p_default, str):
+            if isinstance(p_default, (str, int, float, bool)):
                 if p_default not in enums:
                     yield ValidationError(f"{p_default!r} is not one of {enums!r}",
                         rule=self,

@@ -111,6 +111,10 @@
    },
    "required": [
     "DeviceName"
+   ],
+   "cfnSchema": [
+    "aws-autoscaling-launchconfiguration/blockdevicemapping-virtualname-exlusive",
+    "aws-autoscaling-launchconfiguration/blockdevicemapping-onlyone"
    ]
   },
   "BlockDevice": {

@@ -149,7 +149,10 @@
    "required": [
     "ErrorCode"
    ],
-   "type": "object"
+   "type": "object",
+   "cfnSchema": [
+    "aws-cloudfront-distribution/customerrorresponse-responsecode-inclusive"
+   ]
   },
   "CustomOriginConfig": {
    "additionalProperties": false,
@@ -594,7 +597,10 @@
     "DomainName",
     "Id"
    ],
-   "type": "object"
+   "type": "object",
+   "cfnSchema": [
+    "aws-cloudfront-distribution/origin-onlyone"
+   ]
   },
   "OriginCustomHeader": {
    "additionalProperties": false,
@@ -784,7 +790,12 @@
      "type": "string"
     }
    },
-   "type": "object"
+   "type": "object",
+   "cfnSchema": [
+    "aws-cloudfront-distribution/viewercertificate-acmcertificatearn-inclusive",
+    "aws-cloudfront-distribution/viewercertificate-iamcertificateid-inclusive",
+    "aws-cloudfront-distribution/viewercertificate-onlyone"
+   ]
   }
  },
  "description": "Resource Type definition for AWS::CloudFront::Distribution",

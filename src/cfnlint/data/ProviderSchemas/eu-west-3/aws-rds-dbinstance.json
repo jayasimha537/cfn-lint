@@ -440,6 +440,7 @@
  "propertyTransform": {
   "/properties/DBClusterIdentifier": "$lowercase(DBClusterIdentifier)",
   "/properties/DBClusterSnapshotIdentifier": "$lowercase(DBClusterSnapshotIdentifier)",
+  "/properties/EngineVersion": "$join([$string(EngineVersion), \".*\"])",
   "/properties/DBInstanceIdentifier": "$lowercase(DBInstanceIdentifier)",
   "/properties/DBParameterGroupName": "$lowercase(DBParameterGroupName)",
   "/properties/DBSubnetGroupName": "$lowercase(DBSubnetGroupName)",
@@ -603,5 +604,9 @@
     "rds:DescribeDBInstances"
    ]
   }
- }
+ },
+ "cfnSchema": [
+  "aws-rds-dbinstance/sourcedbinstanceidentifier-exclusive",
+  "aws-rds-dbinstance/aurora-exclusive"
+ ]
 }

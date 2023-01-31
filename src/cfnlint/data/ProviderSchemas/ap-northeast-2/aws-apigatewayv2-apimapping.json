@@ -3,16 +3,16 @@
  "description": "Resource Type definition for AWS::ApiGatewayV2::ApiMapping",
  "additionalProperties": false,
  "properties": {
-  "Id": {
-   "type": "string"
-  },
-  "DomainName": {
-   "type": "string"
-  },
   "Stage": {
    "type": "string"
   },
+  "Id": {
+   "type": "string"
+  },
   "ApiMappingKey": {
+   "type": "string"
+  },
+  "DomainName": {
    "type": "string"
   },
   "ApiId": {
@@ -25,8 +25,7 @@
   "ApiId"
  ],
  "createOnlyProperties": [
-  "/properties/DomainName",
-  "/properties/ApiId"
+  "/properties/DomainName"
  ],
  "primaryIdentifier": [
   "/properties/Id"

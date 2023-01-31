@@ -131,5 +131,8 @@
   "/properties/Id",
   "/properties/LoadBalancerFullName",
   "/properties/DNSName"
+ ],
+ "cfnSchema": [
+  "aws-elasticloadbalancingv2-loadbalancer/subnets-onlyone"
  ]
 }

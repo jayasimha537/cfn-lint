@@ -5,6 +5,7 @@ import logging
 import multiprocessing
 import os
 import zipfile
+import re
 from typing import Any, Dict, List, Union
 
 import jsonpatch
@@ -13,18 +14,20 @@ from pkg_resources import resource_listdir
 from cfnlint.helpers import (
     REGIONS,
     SPEC_REGIONS,
-    apply_json_patch,
     get_url_retrieve,
     load_resource,
     url_has_newer_version,
 )
 from cfnlint.schema.schema import Schema
+from cfnlint.schema.patch import SchemaPatch
 
 LOGGER = logging.getLogger(__name__)
+
 
 class ResourceNotFoundError(Exception):
     def __init__(self, type: str, region: str):
         super().__init__(f"Resource type '{type}' is not found in '{region}'")
+
 
 class ProviderSchemaManager:
     _schemas: Dict[str, Schema] = {}
@@ -32,8 +35,6 @@ class ProviderSchemaManager:
     _cache: Dict[str, Union[List, str]] = {}
 
     def __init__(self) -> None:
-        self._schemas: Dict[str, Schema] = {}
-
         self._patch_path = os.path.join(
             os.path.dirname(__file__),
             "..",
@@ -47,8 +48,19 @@ class ProviderSchemaManager:
             "ProviderSchemas",
         )
 
+        self.reset()
+
+    def reset(self):
+        """
+        Reset's the cache so specs can be reloaded.
+        Important function when processing many templates
+        and using spec patching
+        """
+        self._schemas: Dict[str, Schema] = {}
         self._cache["ResourceTypes"] = {}
         self._cache["GetAtts"] = {}
+        self._cache["RemovedTypes"] = []
+        self._provider_schema_modules: Dict[str, Any] = {}
         for region in REGIONS:
             self._schemas[region] = {}
             self._cache["ResourceTypes"][region] = []
@@ -63,6 +75,9 @@ class ProviderSchemaManager:
         Returns:
             dict: returns the schema
         """
+        if resource_type in self._cache["RemovedTypes"]:
+            raise ResourceNotFoundError(resource_type, region)
+
         rt = resource_type.replace("::", "-").lower()
         schema = self._schemas[region].get(resource_type)
         if schema is None:
@@ -105,12 +120,21 @@ class ProviderSchemaManager:
                     self._provider_schema_modules[region], filename=(filename)
                 )
                 resource_type = schema.get("typeName")
+                if resource_type in self._cache["RemovedTypes"]:
+                    continue
                 self._schemas[region][resource_type] = Schema(schema)
                 self._cache["ResourceTypes"][region].append(resource_type)
 
-        return self._cache["ResourceTypes"][region]
+        return self._cache["ResourceTypes"][region].copy()
 
     def update(self, force: bool) -> None:
+        """Update ever regions provider schemas
+
+        Args:
+            force (bool): force the schemas to be downloaded
+        Returns:
+            None: returns when complete
+        """
         self._update_provider_schema("us-east-1", force=force)
         # pylint: disable=not-context-manager
         with multiprocessing.Pool() as pool:
@@ -132,7 +156,6 @@ class ProviderSchemaManager:
         # China regions in .com.cn
         suffix = ".cn" if region in ["cn-north-1", "cn-northwest-1"] else ""
         url = f"https://schema.cloudformation.{region}.amazonaws.com{suffix}/CloudformationSchema.zip"
-
         directory = os.path.join(f"{self._root_path}/{region}/")
 
         multiprocessing_logger = multiprocessing.log_to_stderr()
@@ -148,7 +171,11 @@ class ProviderSchemaManager:
             with zipfile.ZipFile(filehandle, "r") as zip_ref:
                 zip_ref.extractall(directory)
 
-            filenames = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f)) and f != "__init__.py"]
+            filenames = [
+                f
+                for f in os.listdir(directory)
+                if os.path.isfile(os.path.join(directory, f)) and f != "__init__.py"
+            ]
             for filename in filenames:
                 with open(f"{directory}{filename}", "r+", encoding="utf-8") as fh:
                     spec = json.load(fh)
@@ -186,12 +213,20 @@ class ProviderSchemaManager:
                             )
 
         except Exception as e:  # pylint: disable=broad-except
-            multiprocessing_logger.debug("Issuing updating specs for %s", region)
+            multiprocessing_logger.debug("Issuing updating schemas for %s", region)
 
     def _patch_provider_schema(
         self, content: Dict, source_filename: str, region: str
     ) -> Dict:
-        """Patch the resource type schema files"""
+        """Provides the logic to patch a CloudFormat provider schema file.
+
+        Args:
+            content: A Dict representing the data that needs to be patched
+            source_filename: The source filename for the JSON patches
+            region: The region to apply the patch against
+        Returns:
+            Dict: returns the patched content
+        """
         LOGGER.info('Patching provider schema file for region "%s"', region)
 
         append_dir = os.path.join(self._patch_path, region)
@@ -204,26 +239,94 @@ class ProviderSchemaManager:
                         os.path.sep, "."
                     )
                     LOGGER.info("Processing patch in %s.%s", module, file_path)
-                    all_patches = jsonpatch.JsonPatch(
+                    jsonpatch.JsonPatch(
                         load_resource(
                             f"cfnlint.data.ExtendedProviderSchema.{module}", file_path
                         )
-                    )
-                    content = apply_json_patch(content, all_patches, region)
+                    ).apply(content, in_place=True)
 
         return content
 
+    def patch(self, patch: SchemaPatch, regions: List[str]) -> None:
+        """Patch the schemas as needed 
+
+        Args:
+            patch: The patches to be applied to the schemas
+        Returns:
+            None: Returns when completed
+        """
+
+        for region in regions:
+            resource_types = []
+            all_resource_types = self.get_resource_types(region)[:]
+            # Remove unsupported resource using includes
+            if patch.included_resource_types:
+                for include in patch.included_resource_types:
+                    regex = re.compile(include.replace("*", "(.*)") + "$")
+                    matches = [
+                        string for string in all_resource_types if re.match(regex, string)
+                    ]
+
+                    resource_types.extend(matches)
+            else:
+                resource_types = all_resource_types[:]
+
+            # Remove unsupported resources using the excludes
+            for exclude in patch.excluded_resource_types:
+                regex = re.compile(exclude.replace("*", "(.*)") + "$")
+                matches = [string for string in resource_types if re.match(regex, string)]
+                for match in matches:
+                    resource_types.remove(match)
+
+            # Remove unsupported resources
+            for resource in all_resource_types:
+                if resource not in resource_types:
+                    self._cache["RemovedTypes"].append(resource)
+                    del self._schemas[region][resource]
+                    self._cache["ResourceTypes"][region].remove(resource)               
+            
+            for resource_type, patches in patch.patches.items():
+                try:
+                    schema = self.get_resource_schema(resource_type=resource_type, region=region)
+                except ResourceNotFoundError:
+                    # Resource type doesn't exist in this region
+                    continue
+                schema.patch(patches=patches)
+
+
     def get_type_getatts(self, resource_type: str, region: str) -> Dict[str, Dict]:
+        """Get the GetAtts for a type in a region
+
+        Args:
+            resource_type: The type of the resource. Example: AWS::S3::Bucket
+            region: The region to load the resource type from
+        Returns:
+            Dict(str, Dict): Returns a Dict where the keys are the attributes and the 
+                value is the CloudFormation schema description of the attribute
+        """
         if resource_type not in self._cache["GetAtts"][region]:
             self.get_resource_schema(region=region, resource_type=resource_type)
-            self._cache["GetAtts"][region][resource_type] = self._schemas[region][resource_type].get_atts()
+            self._cache["GetAtts"][region][resource_type] = self._schemas[region][
+                resource_type
+            ].get_atts()
 
         return self._cache["GetAtts"][region][resource_type]
 
     def get_type_refs(self, resource_type: str, region: str) -> Dict[str, Dict]:
+        """Get the Ref for a type in a region
+
+        Args:
+            resource_type: The type of the resource. Example: AWS::S3::Bucket
+            region: The region to load the resource type from
+        Returns:
+            Dict(str, Dict): Returns a Dict where the keys are the Ref property and the 
+                value is the CloudFormation schema description of the attribute
+        """
         if resource_type not in self._cache["Refs"][region]:
             self.get_resource_schema(region=region, resource_type=resource_type)
-            self._cache["Refs"][region][resource_type] = self._schemas[region][resource_type].get_ref()
+            self._cache["Refs"][region][resource_type] = self._schemas[region][
+                resource_type
+            ].get_ref()
 
         return self._cache["Refs"][region][resource_type]
 

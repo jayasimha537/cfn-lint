@@ -81,10 +81,9 @@ class TestJsonSchema(BaseRuleTestCase):
     def validate(self, schema, expected, object=None):
         if object is None:
             object = self.table
-        cleansed_schema = self.rule.clense_schema(schema)
 
         matches = self.rule.json_schema_validate(
-            self.rule.validator(cleansed_schema), object, self.path
+            self.rule.validator(schema), object, self.path
         )
 
         self.assertListEqual(list(map(vars, expected)), list(map(vars, matches)))

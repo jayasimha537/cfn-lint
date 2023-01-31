@@ -795,13 +795,6 @@ class Template:  # pylint: disable=R0904,too-many-lines,too-many-instance-attrib
         if not isinstance(obj, (dict, list)):
             return results
 
-        if not scenarios:
-            if isinstance(obj, dict):
-                if len(obj) == 1:
-                    if obj.get("Ref") == "AWS::NoValue":
-                        return results
-            return [{"Scenario": None, "Object": obj}]
-
         def get_value(value, scenario):  # pylint: disable=R0911
             """Get the value based on the scenario resolving nesting"""
             if isinstance(value, dict):
@@ -833,6 +826,13 @@ class Template:  # pylint: disable=R0904,too-many-lines,too-many-instance-attrib
                 return new_list
 
             return value
+
+        if not scenarios:
+            if isinstance(obj, dict):
+                if len(obj) == 1:
+                    if obj.get("Ref") == "AWS::NoValue":
+                        return results
+            return [{"Scenario": None, "Object": get_value(obj, None)}]
 
         for scenario in scenarios:
             results.append({"Scenario": scenario, "Object": get_value(obj, scenario)})

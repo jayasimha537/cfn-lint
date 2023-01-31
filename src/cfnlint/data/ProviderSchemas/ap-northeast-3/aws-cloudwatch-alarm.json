@@ -196,5 +196,11 @@
  "readOnlyProperties": [
   "/properties/Id",
   "/properties/Arn"
+ ],
+ "cfnSchema": [
+  "aws-cloudwatch-alarm/metric-onlyone",
+  "aws-cloudwatch-alarm/metrics-exclusive",
+  "aws-cloudwatch-alarm/statistic-exclusive",
+  "aws-cloudwatch-alarm/thresholdmetric-exclusive"
  ]
 }

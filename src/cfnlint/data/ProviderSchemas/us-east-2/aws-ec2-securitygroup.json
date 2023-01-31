@@ -78,6 +78,11 @@
    },
    "required": [
     "IpProtocol"
+   ],
+   "cfnSchema": [
+    "aws-ec2-securitygroup/ingress-cidrip-exclusive",
+    "aws-ec2-securitygroup/ingress-cidripv6-exclusive",
+    "aws-ec2-securitygroup/ingress-sourcesecuritygroupid-exclusive"
    ]
   },
   "Egress": {
@@ -111,6 +116,9 @@
    },
    "required": [
     "IpProtocol"
+   ],
+   "cfnSchema": [
+    "aws-ec2-securitygroup/egress-onlyone"
    ]
   },
   "Tag": {
@@ -144,5 +152,8 @@
  "readOnlyProperties": [
   "/properties/Id",
   "/properties/GroupId"
+ ],
+ "cfnSchema": [
+  "aws-ec2-securitygroup/securitygroupegress-inclusive"
  ]
 }

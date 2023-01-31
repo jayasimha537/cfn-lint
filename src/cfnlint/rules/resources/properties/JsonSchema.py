@@ -72,6 +72,7 @@ def is_any(checker, instance):
 class RuleSet:
     def __init__(self):
         self.additionalProperties = "E3002"
+        self.properties = "E3002"
         self.required = "E3003"
         self.enum = "E3030"
         self.type = "E3012"
@@ -119,48 +120,6 @@ class JsonSchema(CloudFormationLintRule):
         self.rules = RuleSet()
         self.validator = None
 
-    # pylint: disable=unused-argument
-    def properties(self, validator, properties, instance, schema):
-        if not validator.is_type(instance, "object"):
-            return
-
-        for p, subschema in properties.items():
-            # use the instance keys because it gives us the start_mark
-            k = [k for k in instance.keys() if k == p]
-            if p in instance:
-                yield from validator.descend(
-                    instance[p],
-                    subschema,
-                    path=k[0] if len(k) > 0 else p,
-                    schema_path=p,
-                )
-
-    def validate_additional_properties(self, validator, aP, instance, schema):
-        if not validator.is_type(instance, "object"):
-            return
-
-        extras = set(find_additional_properties(instance, schema))
-
-        if validator.is_type(aP, "object"):
-            for extra in extras:
-                yield from validator.descend(instance[extra], aP, path=extra)
-        elif not aP and extras:
-            if "patternProperties" in schema:
-                if len(extras) == 1:
-                    verb = "does"
-                else:
-                    verb = "do"
-
-                joined = ", ".join(repr(each) for each in sorted(extras))
-                patterns = ", ".join(
-                    repr(each) for each in sorted(schema["patternProperties"])
-                )
-                error = f"{joined} {verb} not match any of the regexes: {patterns}"
-                yield ValidationError(error)
-            else:
-                for extra in extras:
-                    error = "Additional properties are not allowed (%s unexpected)"
-                    yield ValidationError(error % extra, path_override=[extra])
 
     def json_schema_validate(self, validator, properties, path):
         matches = []
@@ -205,7 +164,7 @@ class JsonSchema(CloudFormationLintRule):
         validators: Dict[str, Callable[[Any, Any, Any, Any], Any]] = {
             "$ref": _validators.ref,
             "additionalItems": _validators.additionalItems,
-            "additionalProperties": self.validate_additional_properties,
+            "additionalProperties": _validators.additionalProperties,
             "allOf": _validators.allOf,
             "anyOf": _validators.anyOf,
             "const": _validators.const,
@@ -230,7 +189,7 @@ class JsonSchema(CloudFormationLintRule):
             "oneOf": _validators.oneOf,
             "pattern": _validators.pattern,
             "patternProperties": _validators.patternProperties,
-            "properties": self.properties,
+            "properties": _validators.properties,
             "propertyNames": _validators.propertyNames,
             "required": _validators.required,
             "type": _validators.type,
@@ -265,19 +224,26 @@ class JsonSchema(CloudFormationLintRule):
                     "string": is_string,
                 },
             ),
-            format_checker=jsonschema.draft7_format_checker,
             version="draft7",
             id_of=cfnlint.schema._legacy_validators.id_of_ignore_ref(),
             applicable_validators=cfnlint.schema._legacy_validators.ignore_ref_siblings,
         )
 
-    def _cfnSchema(self, validator, properties, instance, schema):
-        schema_details = properties.split("/")
-        cfn_schema = load_resource(
-            f"cfnlint.data.AdditionalSpecs.schema.{schema_details[0]}", filename=(f"{schema_details[1]}.json")
-        )
-        cfn_validator = self.validator(cfn_schema)
-        yield from cfn_validator.iter_errors(instance)
+    def _cfnSchema(self, validator, schema_paths, instance, schema):
+        if isinstance(schema_paths, str):
+            schema_paths = [schema_paths]
+        
+        for schema_path in schema_paths:
+            schema_details = schema_path.split("/")
+            cfn_schema = load_resource(
+                f"cfnlint.data.AdditionalSchemas.{schema_details[0]}", filename=(f"{schema_details[1]}.json")
+            )
+            cfn_validator = self.validator(cfn_schema)
+            if cfn_schema.get("description"):
+                if not cfn_validator.is_valid(instance):
+                    yield ValidationError(cfn_schema.get("description"))
+            else:
+                yield from cfn_validator.iter_errors(instance)
 
     def match(self, cfn):
         """Check CloudFormation Properties"""
@@ -315,7 +281,7 @@ class JsonSchema(CloudFormationLintRule):
             t = values.get("Type", None)
             if t.startswith("Custom::"):
                 t = "AWS::CloudFormation::CustomResource"
-            if p and t:
+            if t:
                 for region in cfn.regions:
                     schema = {}
                     try:
@@ -339,19 +305,3 @@ class JsonSchema(CloudFormationLintRule):
 
         return matches
 
-
-def find_additional_properties(instance, schema):
-    """
-    Return the set of additional properties for the given ``instance``.
-    Weeds out properties that should have been validated by ``properties`` and
-    / or ``patternProperties``.
-    Assumes ``instance`` is dict-like already.
-    """
-
-    properties = schema.get("properties", {})
-    patterns = "|".join(schema.get("patternProperties", {}))
-    for p in instance:
-        if p not in properties:
-            if patterns and re.search(patterns, p):
-                continue
-            yield p

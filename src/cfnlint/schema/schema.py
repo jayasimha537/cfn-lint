@@ -4,7 +4,7 @@ from collections import UserDict
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, List, Tuple, Union
-
+import jsonpatch
 import pkg_resources
 
 from cfnlint.schema import pointer
@@ -66,6 +66,17 @@ class Schema:
             getatts[name] = obj
 
         return getatts, is_object
+
+    def patch(self, patches: List[Dict]) -> None:
+        """Patches the schema file
+
+        Args:
+            patches: A list of JSON Patches
+        Returns:
+            None: Returns when the patches have been applied
+        """
+        jsonpatch.JsonPatch(patches).apply(self._json_schema, in_place=True)
+
 
     def get_ref(self) -> Dict[str, dict]:
         """Get the ref schema

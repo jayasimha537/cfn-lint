@@ -167,6 +167,9 @@
    },
    "required": [
     "Version"
+   ],
+   "cfnSchema": [
+    "aws-autoscaling-autoscalinggroup/launchtemplatespecification-onlyone"
    ]
   },
   "InstancesDistribution": {
@@ -544,5 +547,8 @@
  "readOnlyProperties": [
   "/properties/Id",
   "/properties/LaunchTemplateSpecification"
+ ],
+ "cfnSchema": [
+  "aws-autoscaling-autoscalinggroup/onlyone"
  ]
 }

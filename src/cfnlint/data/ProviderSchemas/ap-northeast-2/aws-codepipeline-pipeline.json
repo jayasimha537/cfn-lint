@@ -284,5 +284,6 @@
  "readOnlyProperties": [
   "/properties/Id",
   "/properties/Version"
- ]
+ ],
+ "cfnSchema": "aws-codepipeline-pipeline/artifactstore-onlyone"
 }

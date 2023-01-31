@@ -112,7 +112,6 @@ class SubNeeded(CloudFormationLintRule):
                 continue
 
             var_stripped = var[2:-1].strip()
-
             # If we didn't find an 'Fn::Sub' it means a string containing a ${parameter} may not be evaluated correctly
             if (
                 not "Fn::Sub" in parameter_string_path
@@ -127,6 +126,9 @@ class SubNeeded(CloudFormationLintRule):
                         message = f'Found an embedded parameter "{var}" outside of an "Fn::Sub" at {"/".join(map(str, path))}'
                         matches.append(RuleMatch(path, message))
                 except (ValueError, TypeError):
-                    pass
+                    if "DefinitionString" in parameter_string_path:
+                        path = parameter_string_path[:-1]
+                        message = f'Found an embedded parameter "{var}" outside of an "Fn::Sub" at {"/".join(map(str, path))}'
+                        matches.append(RuleMatch(path, message))
 
         return matches

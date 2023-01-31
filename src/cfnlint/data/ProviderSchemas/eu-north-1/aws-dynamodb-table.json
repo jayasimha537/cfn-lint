@@ -507,5 +507,8 @@
     "dynamodb:ListTables"
    ]
   }
- }
+ },
+ "cfnSchema": [
+  "aws-dynamodb-table/billingmode-exclusive"
+ ]
 }

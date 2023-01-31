@@ -26,12 +26,20 @@ class GetAtts:
     def add(self, resource_name: str, resource_type: str) -> None:
         for region in self._regions:
             if resource_name not in self._getatts[region]:
+                if resource_type.endswith("::MODULE"):
+                    self._getatts[region][f"{resource_name}.*"] = RegexDict()
+                    self._getatts[region][f"{resource_name}.*"][".*"] = {}
+                    continue
+                
                 self._getatts[region][resource_name] = RegexDict()
+
                 if resource_type.startswith(self._astrik_string_types):
-                    self._getatts[region][resource_name]["Outputs..*"] = {"type": "string"}
+                    self._getatts[region][resource_name]["Outputs..*"] = {
+                        "type": "string"
+                    }
                 elif resource_type.startswith(
                     self._astrik_unknown_types
-                ) or resource_type.endswith("::MODULE"):
+                ):
                     self._getatts[region][resource_name][".*"] = {}
                 else:
                     try:
@@ -54,11 +62,8 @@ class GetAtts:
         }
         schema_array = {
             "type": "array",
-            "items": [
-                {"type": "string", "enum": []},
-                {"type": ["string", "object"]}
-            ],
-            "allOf": []
+            "items": [{"type": "string", "enum": []}, {"type": ["string", "object"]}],
+            "allOf": [],
         }
 
         for resource_name, attributes in self._getatts[region].items():
@@ -68,36 +73,43 @@ class GetAtts:
                 schema_strings["enum"].append(f"{resource_name}.{attribute}")
 
             schema_array["items"][0]["enum"].append(resource_name)
-            schema_array["allOf"].append({
-                "if": {
-                    "items": [
-                        {"type": "string", "const": resource_name},
-                        {"type": ["string", "object"]}
-                    ]
-                },
-                "then": {
+            schema_array["allOf"].append(
+                {
                     "if": {
                         "items": [
                             {"type": "string", "const": resource_name},
-                            {"type": "string"}
+                            {"type": ["string", "object"]},
                         ]
                     },
                     "then": {
-                        "items": [
-                            {"type": "string", "const": resource_name},
-                            {"type": "string", "enum": attr_enum}
-                        ]
+                        "if": {
+                            "items": [
+                                {"type": "string", "const": resource_name},
+                                {"type": "string"},
+                            ]
+                        },
+                        "then": {
+                            "items": [
+                                {"type": "string", "const": resource_name},
+                                {"type": "string", "enum": attr_enum},
+                            ]
+                        },
+                        "else": {
+                            "items": [
+                                {"type": "string", "const": resource_name},
+                                {
+                                    "type": "object",
+                                    "properties": {"Ref": {"type": "string"}},
+                                    "required": ["Ref"],
+                                    "additionalProperties": False,
+                                },
+                            ]
+                        },
                     },
-                    "else": {
-                        "items": [
-                            {"type": "string", "const": resource_name},
-                            {"type": "object", "properties": {"Ref": {"type": "string"}}}
-                        ]
-                    },
-                },
-                "else": {}
-            })
-            
+                    "else": {},
+                }
+            )
+
         schema["oneOf"].append(schema_array)
         schema["oneOf"].append(schema_strings)
         return schema
@@ -121,7 +133,7 @@ class GetAtts:
         else:
             raise (TypeError("Invalid GetAtt structure"))
 
-    def items(self, region: Optional[str]=None) -> Iterable[Tuple[str, Dict]]:
+    def items(self, region: Optional[str] = None) -> Iterable[Tuple[str, Dict]]:
         if region is None:
             region = self._regions[0]
             for k, v in self._getatts.get(region, {}).items():

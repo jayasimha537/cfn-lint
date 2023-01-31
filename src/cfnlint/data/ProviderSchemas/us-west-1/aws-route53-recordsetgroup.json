@@ -143,5 +143,8 @@
  ],
  "readOnlyProperties": [
   "/properties/Id"
+ ],
+ "cfnSchema": [
+  "aws-route53-recordsetgroup/hostedzone-onlyone"
  ]
 }

@@ -2,6 +2,7 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
+from jsonschema import Draft7Validator
 from test.unit.rules import BaseRuleTestCase
 
 from cfnlint.rules.resources.properties.OnlyOne import OnlyOne  # pylint: disable=E0401
@@ -10,27 +11,27 @@ from cfnlint.rules.resources.properties.OnlyOne import OnlyOne  # pylint: disabl
 class TestPropertyOnlyOne(BaseRuleTestCase):
     """Test OnlyOne Property Configuration"""
 
-    def setUp(self):
-        """Setup"""
-        super(TestPropertyOnlyOne, self).setUp()
-        self.collection.register(OnlyOne())
-        self.success_templates = [
-            "test/fixtures/templates/good/resources/properties/onlyone.yaml"
-        ]
-        self.collection.configure(include_experimental=False)
-
-    def test_file_positive(self):
+    def test_allowed_value(self):
         """Test Positive"""
-        self.helper_file_positive()
-
-    def test_file_negative(self):
-        """Test failure"""
-        self.helper_file_negative(
-            "test/fixtures/templates/bad/resources/properties/onlyone.yaml", 4
-        )
-
-    def test_file_negative_experimental(self):
-        self.collection.configure(include_experimental=True)
-        self.helper_file_negative(
-            "test/fixtures/templates/bad/resources/properties/onlyone.yaml", 0
-        )
+        rule = OnlyOne()
+        schemas = [
+            {
+                    "type": "string",
+                    "enum": [
+                        "a",
+                        "b"
+                    ]
+                },
+                {
+                    "type": "string",
+                    "enum": [
+                        "b",
+                        "c"
+                    ]
+                }
+        ]
+        validator = Draft7Validator({})
+        self.assertEqual(len(list(rule.oneOf(validator, schemas, "a", {}))), 0)
+        self.assertEqual(len(list(rule.oneOf(validator, schemas, "b", {}))), 1)
+        self.assertEqual(len(list(rule.oneOf(validator, schemas, "d", {}))), 1)
+        

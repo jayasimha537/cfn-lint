@@ -24,6 +24,5 @@ class ValueRefGetAtt(CloudFormationLintRule):
         return super().initialize(cfn)
 
     def awsType(self, validator, uI, instance, schema):
-        aws_type = schema.get("awsType")
-        print(aws_type)
+        pass
     

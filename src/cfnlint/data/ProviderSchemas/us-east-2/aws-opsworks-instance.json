@@ -115,7 +115,11 @@
     "VirtualName": {
      "type": "string"
     }
-   }
+   },
+   "cfnSchema": [
+    "aws-opsworks-instance/blockdevicemapping-virtualname",
+    "aws-opsworks-instance/blockdevicemapping-onlyone"
+   ]
   },
   "TimeBasedAutoScaling": {
    "type": "object",

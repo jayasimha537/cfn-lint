@@ -8,6 +8,7 @@ from cfnlint.schema import exceptions
 from jsonschema.validators import validator_for, RefResolver
 from typing import Mapping, Any, Union, Iterable
 
+
 def _id_of(schema):
     """
     Return the ID of a schema for recent JSON Schema drafts.
@@ -15,6 +16,7 @@ def _id_of(schema):
     if schema is True or schema is False:
         return ""
     return schema.get("$id", "")
+
 
 def create(
     meta_schema,
@@ -66,7 +68,7 @@ def create(
     format_checker_arg = format_checker
 
     @attr.s
-    class Validator():
+    class Validator:
         """
         The protocol to which all validator classes adhere.
         Arguments:
@@ -187,7 +189,7 @@ def create(
                 if self.is_type(instance, "object"):
                     if len(instance) == 1:
                         for k, v in instance.items():
-                            # if the element is a condition lets evaluate both the 
+                            # if the element is a condition lets evaluate both the
                             # true and false paths of the condition
                             if k == "Fn::If":
                                 if len(v) == 3:

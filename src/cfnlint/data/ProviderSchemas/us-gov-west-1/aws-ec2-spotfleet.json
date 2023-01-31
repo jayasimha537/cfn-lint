@@ -127,6 +127,9 @@
    "required": [
     "IamFleetRole",
     "TargetCapacity"
+   ],
+   "cfnSchema": [
+    "aws-ec2-spotfleet/spotfleetrequestconfigdata-onlyone"
    ]
   },
   "SpotFleetLaunchSpecification": {
@@ -512,6 +515,10 @@
    },
    "required": [
     "DeviceName"
+   ],
+   "cfnSchema": [
+    "aws-ec2-spotfleet/blockdevicemapping-virtualname",
+    "aws-ec2-spotfleet/blockdevicemapping-onlyone"
    ]
   },
   "TargetGroupsConfig": {

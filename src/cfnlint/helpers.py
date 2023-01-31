@@ -212,7 +212,7 @@ class RegexDict(dict):
     def __getitem__(self, item):
         possible_items = {}
         for k, v in self.items():
-            if re.match(k, item):
+            if re.fullmatch(k, item):
                 possible_items[k] = v
         if not possible_items:
             raise KeyError

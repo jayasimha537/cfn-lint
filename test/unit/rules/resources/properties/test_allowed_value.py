@@ -13,7 +13,7 @@ from cfnlint.rules.resources.properties.AllowedValue import (
 class TestAllowedValue(BaseRuleTestCase):
     """Test Allowed Value Property Configuration"""
 
-    def test_file_positive(self):
+    def test_allowed_value(self):
         """Test Positive"""
         rule = AllowedValue()
         validator = Draft7Validator({

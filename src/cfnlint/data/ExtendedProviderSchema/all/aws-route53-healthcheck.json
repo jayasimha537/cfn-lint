@@ -2,6 +2,9 @@
   {
     "op": "add",
     "path": "/properties/HealthCheckConfig/cfnSchema",
-    "value": "aws-route53-healthcheck/healthcheckconfig"
+    "value": [
+      "aws-route53-healthcheck/healthcheckconfig",
+      "aws-route53-healthcheck/healthcheckconfig-type-inclusive"
+    ]
   }
 ]

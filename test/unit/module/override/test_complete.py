@@ -5,14 +5,15 @@ SPDX-License-Identifier: MIT-0
 import json
 from test.testlib.testcase import BaseTestCase
 
-import cfnlint.helpers
 from cfnlint.rules import RulesCollection
 from cfnlint.rules.resources.Configuration import Configuration  # pylint: disable=E0401
 from cfnlint.rules.resources.properties.Required import (
     Required,  # pylint: disable=E0401
 )
+from cfnlint.rules.resources.properties.JsonSchema import JsonSchema
 from cfnlint.runner import Runner
-
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.schema.patch import SchemaPatch
 
 class TestComplete(BaseTestCase):
     """Used for Testing Rules"""
@@ -20,24 +21,28 @@ class TestComplete(BaseTestCase):
     def setUp(self):
         """Setup"""
         self.collection = RulesCollection()
+        self.collection.register(JsonSchema())
         self.collection.register(Configuration())
         self.collection.register(Required())
+        self.regions = ['us-east-1']
 
     def tearDown(self):
         """Tear Down"""
         # Reset the Spec override to prevent other tests to fail
-        cfnlint.helpers.initialize_specs()
+        PROVIDER_SCHEMA_MANAGER.reset()
 
     def test_success_run(self):
         """Success test"""
         filename = "test/fixtures/templates/good/override/complete.yaml"
         template = self.load_template(filename)
-        with open("test/fixtures/templates/override_spec/complete.json") as fp:
-            custom_spec = json.load(fp)
 
-        cfnlint.helpers.set_specs(custom_spec)
+        with open("test/fixtures/templates/override_spec/complete.json") as fp:  
+            p = json.load(fp)
+            schema_patch = SchemaPatch.from_dict(p)
 
-        good_runner = Runner(self.collection, filename, template, ["us-east-1"], [])
+        PROVIDER_SCHEMA_MANAGER.patch(schema_patch, regions=self.regions)
+
+        good_runner = Runner(self.collection, filename, template, self.regions, [])
         self.assertEqual([], good_runner.run())
 
     def test_fail_run(self):
@@ -45,10 +50,12 @@ class TestComplete(BaseTestCase):
         filename = "test/fixtures/templates/bad/override/complete.yaml"
         template = self.load_template(filename)
 
-        with open("test/fixtures/templates/override_spec/complete.json") as fp:
-            custom_spec = json.load(fp)
-        cfnlint.helpers.set_specs(custom_spec)
+        with open("test/fixtures/templates/override_spec/complete.json") as fp:  
+            p = json.load(fp)
+            schema_patch = SchemaPatch.from_dict(p)
 
-        bad_runner = Runner(self.collection, filename, template, ["us-east-1"], [])
+        PROVIDER_SCHEMA_MANAGER.patch(schema_patch, regions=self.regions)
+
+        bad_runner = Runner(self.collection, filename, template, self.regions, [])
         errs = bad_runner.run()
         self.assertEqual(3, len(errs))

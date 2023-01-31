@@ -1463,7 +1463,8 @@
      "description": "The HTTP error code when the redirect is applied. ",
      "type": "string"
     }
-   }
+   },
+   "cfnSchema": "aws-s3-bucket/routingrulecondition-required"
   },
   "RedirectAllRequestsTo": {
    "description": "Specifies the redirect behavior of all requests to a website endpoint of an Amazon S3 bucket.",

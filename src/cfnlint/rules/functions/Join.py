@@ -2,6 +2,7 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
+from typing import Union
 import warnings
 from cfnlint.helpers import VALID_PARAMETER_TYPES_LIST
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
@@ -101,18 +102,18 @@ class Join(CloudFormationLintRule):
             return True
         return False
 
-    def _is_getatt_a_list(self, parameter, get_atts) -> bool:
+    def _is_getatt_a_list(self, parameter, get_atts) -> Union[bool, None]:
         """Is a GetAtt a List"""
         try:
             getatt = get_atts.match('us-east-1', parameter)
-            if getatt.get("type") == "array":
+            if getatt.get("type") == "array" or not getatt:
                 return True
             else:
                 return False
         except:
             # this means we can't match the get_att.  This is 
             # covered by another rule
-            return True
+            return None
 
     def _match_string_objs(self, join_string_objs, cfn, path):
         """Check join list"""
@@ -139,11 +140,10 @@ class Join(CloudFormationLintRule):
                                 )
                             )
                     elif key in ["Fn::GetAtt"]:
-                        if ( not (
-                            self._is_getatt_a_list(
-                                self._normalize_getatt(value), get_atts
-                            )
-                        )):
+                        is_a_list = self._is_getatt_a_list(
+                            self._normalize_getatt(value), get_atts
+                        )
+                        if is_a_list is not None and not (is_a_list):
                             message = "Fn::Join must use a list at {0}"
                             matches.append(
                                 RuleMatch(
@@ -180,12 +180,10 @@ class Join(CloudFormationLintRule):
                                         )
                                     )
                             elif key in ["Fn::GetAtt"]:
-                                if (
-                                    self._is_getatt_a_list(
-                                        self._normalize_getatt(value), get_atts
-                                    )
-                                    == "TRUE"
-                                ):
+                                is_a_list = self._is_getatt_a_list(
+                                    self._normalize_getatt(value), get_atts
+                                )
+                                if is_a_list is not None and is_a_list:
                                     message = "Fn::Join must not be a list at {0}"
                                     matches.append(
                                         RuleMatch(

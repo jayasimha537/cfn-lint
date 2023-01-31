@@ -180,5 +180,6 @@
  ],
  "readOnlyProperties": [
   "/properties/Id"
- ]
+ ],
+ "cfnSchema": "aws-applicationautoscaling-scalingpolicy/scalingpolicy"
 }

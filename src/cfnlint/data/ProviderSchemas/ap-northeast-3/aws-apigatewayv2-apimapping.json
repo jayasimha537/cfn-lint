@@ -25,7 +25,6 @@
   "ApiId"
  ],
  "createOnlyProperties": [
-  "/properties/ApiId",
   "/properties/DomainName"
  ],
  "primaryIdentifier": [

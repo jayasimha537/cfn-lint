@@ -117,7 +117,7 @@
   "taggable": true,
   "tagOnCreate": true,
   "tagUpdatable": true,
-  "cloudFormationSystemTags": true
+  "cloudFormationSystemTags": false
  },
  "additionalProperties": false,
  "createOnlyProperties": [
@@ -144,10 +144,9 @@
  "primaryIdentifier": [
   "/properties/AttachmentId"
  ],
- "additionalIdentifiers": [
-  [
-   "/properties/ResourceArn"
-  ]
+ "required": [
+  "CoreNetworkId",
+  "VpnConnectionArn"
  ],
  "handlers": {
   "create": {

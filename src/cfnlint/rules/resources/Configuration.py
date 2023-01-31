@@ -9,7 +9,7 @@ from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER, ResourceNotFoundErro
 from jsonschema import Draft7Validator
 from jsonschema.validators import extend
 from cfnlint.helpers import load_resource
-from cfnlint.data.AdditionalSpecs.schema import resource
+from cfnlint.data.AdditionalSchemas import resource
 from cfnlint.schema.exceptions import ValidationError
 
 
@@ -32,7 +32,6 @@ class Configuration(CloudFormationLintRule):
             validator=Draft7Validator,
             validators={
                 "cfnType": self._cfnType,
-                "cfnPropertiesRequired": self._cfnPropertiesRequired
             },
         )(schema=schema)
 
@@ -45,36 +44,13 @@ class Configuration(CloudFormationLintRule):
             return
         for region in self.regions:
             if instance in PROVIDER_SCHEMA_MANAGER.get_resource_types(region=region):
-                continue
+                return
             if not instance.startswith(
                 ("Custom::", "AWS::Serverless::")
             ) and not instance.endswith("::MODULE"):
                 yield ValidationError(
                     f"Resource type `{instance}` does not exist in '{region}'"
                 )
-
-    def _cfnPropertiesRequired(self, validator, pR, instance, schema):
-        r_type = instance.get("Type")
-        # validated someplace else
-        if not validator.is_type(r_type, "string"):
-            return
-        for region in self.regions:
-            try:
-                schema = PROVIDER_SCHEMA_MANAGER.get_resource_schema(region=region, resource_type=r_type)
-                if schema.json_schema().get("required", []):
-                    if (
-                        r_type == "AWS::CloudFormation::WaitCondition"
-                        and "CreationPolicy" in instance.keys()
-                    ):
-                        self.logger.debug(
-                            "Exception to required properties section as CreationPolicy is defined."
-                        )
-                    elif "Properties" not in instance:
-                        yield ValidationError(
-                            f"Resource type `{r_type}` has required properties"
-                        )
-            except ResourceNotFoundError:
-                continue
 
     def _check_resource(self, cfn, resource_name, resource_values):
         """Check Resource"""
