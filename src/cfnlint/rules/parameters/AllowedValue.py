@@ -4,7 +4,7 @@ SPDX-License-Identifier: MIT-0
 """
 from cfnlint.rules import CloudFormationLintRule
 from cfnlint.template.template import Template
-from cfnlint.schema.exceptions import ValidationError
+from cfnlint.jsonschema import ValidationError
 
 class AllowedValue(CloudFormationLintRule):
     """Check if parameters have a valid value"""

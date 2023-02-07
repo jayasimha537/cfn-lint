@@ -6,7 +6,7 @@ import re
 import datetime
 import json
 from cfnlint.rules import CloudFormationLintRule
-from cfnlint.schema.exceptions import ValidationError
+from cfnlint.jsonschema import ValidationError
 from cfnlint.helpers import FUNCTIONS
 
 

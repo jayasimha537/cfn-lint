@@ -9,7 +9,6 @@ import warnings
 import cfnlint.conditions
 import cfnlint.helpers
 from cfnlint.graph import Graph
-from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 from cfnlint.template.getatts import GetAtts
 
 LOGGER = logging.getLogger(__name__)
@@ -831,8 +830,8 @@ class Template:  # pylint: disable=R0904,too-many-lines,too-many-instance-attrib
             if isinstance(obj, dict):
                 if len(obj) == 1:
                     if obj.get("Ref") == "AWS::NoValue":
-                        return results
-            return [{"Scenario": None, "Object": get_value(obj, None)}]
+                        return [{"Scenario": None, "Object": {}}]
+            return [{"Scenario": None, "Object": get_value(obj, {})}]
 
         for scenario in scenarios:
             results.append({"Scenario": scenario, "Object": get_value(obj, scenario)})
@@ -941,7 +940,7 @@ class Template:  # pylint: disable=R0904,too-many-lines,too-many-instance-attrib
             if isinstance(obj, dict):
                 if len(obj) == 1:
                     if obj.get("Ref") == "AWS::NoValue":
-                        return results
+                        return []
             return [{"Scenario": None, "Object": obj}]
 
         for scenario in scenarios:

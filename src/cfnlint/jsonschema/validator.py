@@ -1,12 +1,20 @@
+from __future__ import annotations
 import attr
 import reprlib
 import typing
 import warnings
 from operator import methodcaller
-import jsonschema
-from cfnlint.schema import exceptions
+from cfnlint.jsonschema.exceptions import ValidationError
 from jsonschema.validators import validator_for, RefResolver
-from typing import Mapping, Any, Union, Iterable
+from typing import Mapping, Any, Union, Iterable, Dict, Callable, Optional, List, TYPE_CHECKING
+from cfnlint.jsonschema import _validators
+from cfnlint.jsonschema import _types
+from cfnlint.helpers import load_resource
+from copy import deepcopy
+
+if TYPE_CHECKING:
+    from cfnlint.template import Template
+    from cfnlint.rules import CloudFormationLintRule
 
 
 def _id_of(schema):
@@ -17,21 +25,48 @@ def _id_of(schema):
         return ""
     return schema.get("$id", "")
 
+_cfn_validators: Dict[str, Callable[[Any, Any, Any, Any], Any]] = {
+    "$ref": _validators.ref,
+    "additionalItems": _validators.additionalItems,
+    "additionalProperties": _validators.additionalProperties,
+    "allOf": _validators.allOf,
+    "anyOf": _validators.anyOf,
+    "const": _validators.const,
+    "contains": _validators.contains_draft6_draft7,
+    "dependencies": _validators.dependencies_draft4_draft6_draft7,
+    "enum": _validators.enum,
+    "exclusiveMaximum": _validators.exclusiveMaximum,
+    "exclusiveMinimum": _validators.exclusiveMinimum,
+    "if": _validators.if_,
+    "items": _validators.items_draft6_draft7_draft201909,
+    "maxItems": _validators.maxItems,
+    "maxLength": _validators.maxLength,
+    "maxProperties": _validators.maxProperties,
+    "maximum": _validators.maximum,
+    "minItems": _validators.minItems,
+    "minLength": _validators.minLength,
+    "minProperties": _validators.minProperties,
+    "minimum": _validators.minimum,
+    "multipleOf": _validators.multipleOf,
+    "not": _validators.not_,
+    "oneOf": _validators.oneOf,
+    "pattern": _validators.pattern,
+    "patternProperties": _validators.patternProperties,
+    "properties": _validators.properties,
+    "propertyNames": _validators.propertyNames,
+    "required": _validators.required,
+    "type": _validators.type,
+    "uniqueItems": _validators.uniqueItems,
+}
 
 def create(
-    meta_schema,
     validators=(),
-    version=None,
-    type_checker=jsonschema._types.draft7_type_checker,
-    format_checker=jsonschema._format.draft7_format_checker,
-    id_of=_id_of,
-    applicable_validators=methodcaller("items"),
+    cfn: Optional[Template] = None,
+    rules: Dict[str, CloudFormationLintRule] = {},
 ):
     """
     Create a new validator class.
     Arguments:
-        meta_schema (collections.abc.Mapping):
-            the meta schema for the new validator class
         validators (collections.abc.Mapping):
             a mapping from names to callables, where each callable will
             validate the schema property with the given name.
@@ -41,31 +76,24 @@ def create(
                    instance
                 3. the instance
                 4. the schema
-        version (str):
-            an identifier for the version that this validator class will
-            validate. If provided, the returned validator class will
-            have its ``__name__`` set to include the version, and also
-            will have `jsonschema.validators.validates` automatically
-            called for the given version.
-        type_checker (jsonschema.TypeChecker):
-            a type checker, used when applying the :kw:`type` keyword.
-            If unprovided, a `jsonschema.TypeChecker` will be created
-            with a set of default types typical of JSON Schema drafts.
-        format_checker (jsonschema.FormatChecker):
-            a format checker, used when applying the :kw:`format` keyword.
-            If unprovided, a `jsonschema.FormatChecker` will be created
-            with a set of default formats typical of JSON Schema drafts.
-        id_of (collections.abc.Callable):
-            A function that given a schema, returns its ID.
-        applicable_validators (collections.abc.Callable):
-            A function that given a schema, returns the list of
-            applicable validators (validation keywords and callables)
-            which will be used to validate the instance.
     Returns:
         a new `jsonschema.protocols.Validator` class
     """
-    # preemptively don't shadow the `Validator.format_checker` local
-    format_checker_arg = format_checker
+    applicable_validators=_validators.ignore_ref_siblings
+
+    validators_arg = _cfn_validators.copy()
+    validators_arg.update(validators)
+    if rules is not None:
+        for js in validators_arg.keys():
+            rule = rules.get(js)
+            if rule is not None:
+                if hasattr(rule, "validate_configure") and callable(
+                    getattr(rule, "validate_configure")
+                ):
+                    rule.validate_configure(cfn)
+                if hasattr(rule, js) and callable(getattr(rule, js)):
+                    func = getattr(rule, js)
+                    validators_arg[js] = func
 
     @attr.s
     class Validator:
@@ -91,11 +119,13 @@ def create(
                 invoking ``pip``.
         """
 
-        VALIDATORS = dict(validators)
-        META_SCHEMA = dict(meta_schema)
-        TYPE_CHECKER = type_checker
-        FORMAT_CHECKER = format_checker_arg
-        ID_OF = staticmethod(id_of)
+        VALIDATORS = dict(validators_arg)
+        META_SCHEMA = dict(load_resource(
+            f"cfnlint.data.AdditionalSchemas.json-schema", filename=(f"draft7.json")
+        ))
+        TYPE_CHECKER = _types.cfn_type_checker
+        FORMAT_CHECKER = None
+        ID_OF = staticmethod(_id_of)
 
         schema = attr.ib(repr=reprlib.repr)
         resolver = attr.ib(default=None, repr=False)
@@ -113,7 +143,7 @@ def create(
             if self.resolver is None:
                 self.resolver = RefResolver.from_schema(
                     self.schema,
-                    id_of=id_of,
+                    id_of=_id_of,
                 )
 
         @classmethod
@@ -182,7 +212,7 @@ def create(
                 )
                 return
 
-            scope = id_of(_schema)
+            scope = _id_of(_schema)
             if scope:
                 self.resolver.push_scope(scope)
             try:
@@ -287,3 +317,8 @@ def create(
                 yield error
 
     return Validator
+
+
+CfnValidator = create(
+    validators=(),
+)

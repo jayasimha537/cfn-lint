@@ -1,4 +1,4 @@
-[
+
   {
     "type": "object",
     "description": "Specify only 'InstanceId', 'LaunchConfigurationName', 'LaunchTemplate', or 'MixedInstancesPolicy'",
@@ -38,5 +38,3 @@
     ],
     "additionalProperties": true
   }
-  
-]

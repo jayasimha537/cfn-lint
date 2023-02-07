@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT-0
 import itertools
 from typing import Sequence, Mapping
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from cfnlint.schema.exceptions import ValidationError
+from cfnlint.jsonschema import ValidationError
 
 class ListDuplicates(CloudFormationLintRule):
     """Check if duplicates exist in a List"""

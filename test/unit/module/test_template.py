@@ -1032,7 +1032,7 @@ ElasticLoadBalancer -> MyEC2Instance  [color=black, key=0, label=Ref, source_pat
             template.template.get("Resources", {}).get("Test", {}),
             ["Resources", "Test"],
         )
-        self.assertEqual(results, [])
+        self.assertEqual(results, [{'Object': {}, 'Scenario': None}])
         results = template.get_object_without_nested_conditions(
             template.template.get("Resources", {}), ["Resources"]
         )

@@ -8,7 +8,7 @@ from cfnlint.rules import CloudFormationLintRule, RuleMatch
 from jsonschema import validate, Draft7Validator
 from jsonschema.exceptions import best_match
 from jsonschema.validators import extend
-from cfnlint.schema.exceptions import ValidationError
+from cfnlint.jsonschema import ValidationError
 import re
 LOGGER = logging.getLogger("cfnlint")
 

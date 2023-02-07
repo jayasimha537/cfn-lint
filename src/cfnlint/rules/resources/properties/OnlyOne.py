@@ -3,7 +3,7 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
 from cfnlint.rules import CloudFormationLintRule
-from cfnlint.schema.exceptions import ValidationError
+from cfnlint.jsonschema import ValidationError
 
 class OnlyOne(CloudFormationLintRule):
     """Check Properties Resource Configuration"""

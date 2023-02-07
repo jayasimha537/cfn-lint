@@ -1,33 +1,31 @@
-[
-  {
-    "type": "object",
-    "description": "Specify only 'AcmCertificateArn', 'CloudFrontDefaultCertificate', or 'IamCertificateId'",
-    "oneOf": [
-      {
-        "properties": {
-          "AcmCertificateArn": {
-            "type": "string"
-          }
-        },
-        "required": ["AcmCertificateArn"]
+{
+  "type": "object",
+  "description": "Specify only 'AcmCertificateArn', 'CloudFrontDefaultCertificate', or 'IamCertificateId'",
+  "oneOf": [
+    {
+      "properties": {
+        "AcmCertificateArn": {
+          "type": "string"
+        }
       },
-      {
-        "properties": {
-          "CloudFrontDefaultCertificate": {
-            "type": "string"
-          }
-        },
-        "required": ["CloudFrontDefaultCertificate"]
+      "required": ["AcmCertificateArn"]
+    },
+    {
+      "properties": {
+        "CloudFrontDefaultCertificate": {
+          "type": "string"
+        }
       },
-      {
-        "properties": {
-          "IamCertificateId": {
-            "type": "string"
-          }
-        },
-        "required": ["IamCertificateId"]
-      }
-    ],
-    "additionalProperties": true
-  }
-]
+      "required": ["CloudFrontDefaultCertificate"]
+    },
+    {
+      "properties": {
+        "IamCertificateId": {
+          "type": "string"
+        }
+      },
+      "required": ["IamCertificateId"]
+    }
+  ],
+  "additionalProperties": true
+}

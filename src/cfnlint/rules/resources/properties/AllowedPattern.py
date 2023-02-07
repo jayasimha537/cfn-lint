@@ -2,7 +2,10 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
+import re
 from cfnlint.rules import CloudFormationLintRule
+from cfnlint.jsonschema import ValidationError
+from cfnlint.helpers import REGEX_DYN_REF
 
 
 class AllowedPattern(CloudFormationLintRule):
@@ -14,3 +17,10 @@ class AllowedPattern(CloudFormationLintRule):
     source_url = "https://github.com/awslabs/cfn-python-lint/blob/main/docs/cfn-resource-specification.md#allowedpattern"
     tags = ["resources", "property", "allowed pattern", "regex"]
 
+    def pattern(self, validator, patrn, instance, schema):
+        if validator.is_type(instance, "string"):
+            # skip any dynamic reference strings
+            if REGEX_DYN_REF.findall(instance):
+                return
+            if not re.search(patrn, instance):
+                yield ValidationError(f"{instance!r} does not match {patrn!r}")

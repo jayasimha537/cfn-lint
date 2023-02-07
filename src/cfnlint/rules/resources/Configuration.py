@@ -5,12 +5,12 @@ SPDX-License-Identifier: MIT-0
 import cfnlint.helpers
 from cfnlint.helpers import REGISTRY_SCHEMAS
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER, ResourceNotFoundError
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 from jsonschema import Draft7Validator
 from jsonschema.validators import extend
 from cfnlint.helpers import load_resource
 from cfnlint.data.AdditionalSchemas import resource
-from cfnlint.schema.exceptions import ValidationError
+from cfnlint.jsonschema import ValidationError, create as create_validator
 
 
 class Configuration(CloudFormationLintRule):
@@ -28,11 +28,10 @@ class Configuration(CloudFormationLintRule):
         super().__init__()
         schema = cfnlint.helpers.load_resource(resource, "configuration.json")
         self.regions = []
-        self.validator = extend(
-            validator=Draft7Validator,
+        self.validator = create_validator(
             validators={
                 "cfnType": self._cfnType,
-            },
+            }, cfn=None, rules=None
         )(schema=schema)
 
     def initialize(self, cfn):

@@ -10,6 +10,9 @@ from cfnlint.rules import RulesCollection
 from cfnlint.rules.resources.properties.Required import (
     Required,  # pylint: disable=E0401
 )
+from cfnlint.rules.resources.properties.JsonSchema import (
+    JsonSchema,  # pylint: disable=E0401
+)
 from cfnlint.runner import Runner
 from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 from cfnlint.schema.patch import SchemaPatch
@@ -21,6 +24,7 @@ class TestOverrideRequired(BaseTestCase):
     def setUp(self):
         """Setup"""
         self.collection = RulesCollection()
+        self.collection.register(JsonSchema())
         self.collection.register(Required())
         self.regions = ["us-east-1"]
 

@@ -7,7 +7,7 @@ from typing import Dict, List, Tuple, Union
 import jsonpatch
 import pkg_resources
 
-from cfnlint.schema import pointer
+from cfnlint.schema._pointer import resolve_pointer
 
 # Can't use a dataclass because its hard to parse in json
 # with optional fields without addtional help
@@ -46,7 +46,7 @@ class Schema:
     def _flatten_getatts(self, ptr: str) -> Tuple[Dict[str, Dict], bool]:
         getatts = {}
         name = ".".join(ptr.split("/")[2:])
-        obj = pointer.resolve_pointer(self.schema, ptr)
+        obj = resolve_pointer(self.schema, ptr)
         is_object = False
         if "$ref" in obj:
             subs, sub_is_object = self._flatten_getatts(obj.get("$ref"))

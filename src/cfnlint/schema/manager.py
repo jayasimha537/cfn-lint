@@ -20,13 +20,9 @@ from cfnlint.helpers import (
 )
 from cfnlint.schema.schema import Schema
 from cfnlint.schema.patch import SchemaPatch
+from cfnlint.schema.exceptions import ResourceNotFoundError
 
 LOGGER = logging.getLogger(__name__)
-
-
-class ResourceNotFoundError(Exception):
-    def __init__(self, type: str, region: str):
-        super().__init__(f"Resource type '{type}' is not found in '{region}'")
 
 
 class ProviderSchemaManager:

@@ -4,7 +4,7 @@ SPDX-License-Identifier: MIT-0
 """
 from cfnlint.rules import CloudFormationLintRule
 from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
-from cfnlint.schema.exceptions import ValidationError
+from cfnlint.jsonschema import ValidationError
 
 class AllowedValue(CloudFormationLintRule):
     """Check if properties have a valid value"""
