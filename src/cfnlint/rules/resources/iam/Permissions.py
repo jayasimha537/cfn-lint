@@ -5,8 +5,8 @@ SPDX-License-Identifier: MIT-0
 import json
 
 from cfnlint.data import AdditionalSpecs
-from cfnlint.helpers import load_resource
 from cfnlint.decode.node import convert_dict
+from cfnlint.helpers import load_resource
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 
 

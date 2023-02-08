@@ -4,10 +4,7 @@ SPDX-License-Identifier: MIT-0
 """
 import logging
 import re
-import numbers
-from copy import deepcopy
-from typing import Any, Callable, Dict
-from dataclasses import dataclass
+
 import jsonschema
 
 from cfnlint.helpers import (
@@ -16,15 +13,13 @@ from cfnlint.helpers import (
     REGEX_DYN_REF,
     REGISTRY_SCHEMAS,
     UNCONVERTED_SUFFIXES,
-    load_resource
+    load_resource,
 )
+from cfnlint.jsonschema import ValidationError
+from cfnlint.jsonschema.validator import create as create_validator
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER, ResourceNotFoundError
 from cfnlint.template.template import Template
-import cfnlint.jsonschema.validator
-from jsonschema.exceptions import best_match
-from cfnlint.jsonschema import ValidationError
-from cfnlint.jsonschema.validator import create as create_validator
 
 LOGGER = logging.getLogger("cfnlint.rules.resources.properties.JsonSchema")
 
@@ -49,7 +44,7 @@ _rule_set = {
     "awsType": "E3008",
     "cfnSchema": "E3017",
 }
-    
+
 
 class JsonSchema(CloudFormationLintRule):
     """Check Base Resource Configuration"""
@@ -82,7 +77,6 @@ class JsonSchema(CloudFormationLintRule):
         self.rules = {}
         for name, _ in _rule_set.items():
             self.rules[name] = None
-
 
     def json_schema_validate(self, validator, properties, path):
         matches = []
@@ -126,21 +120,26 @@ class JsonSchema(CloudFormationLintRule):
     def _setup_validator(self, cfn: Template):
         for name, rule_id in _rule_set.items():
             self.rules[name] = self.child_rules.get(rule_id)
-        
-        self.validator = create_validator(validators={
-            "awsType": None,
-            "cfnSchema": self._cfnSchema,
-        }, cfn=cfn, rules=self.rules)
 
+        self.validator = create_validator(
+            validators={
+                "awsType": None,
+                "cfnSchema": self._cfnSchema,
+            },
+            cfn=cfn,
+            rules=self.rules,
+        )
 
+    # pylint: disable=unused-argument
     def _cfnSchema(self, validator, schema_paths, instance, schema):
         if isinstance(schema_paths, str):
             schema_paths = [schema_paths]
-        
+
         for schema_path in schema_paths:
             schema_details = schema_path.split("/")
             cfn_schema = load_resource(
-                f"cfnlint.data.AdditionalSchemas.{schema_details[0]}", filename=(f"{schema_details[1]}.json")
+                f"cfnlint.data.AdditionalSchemas.{schema_details[0]}",
+                filename=(f"{schema_details[1]}.json"),
             )
             cfn_validator = self.validator(cfn_schema)
             if cfn_schema.get("description"):
@@ -208,4 +207,3 @@ class JsonSchema(CloudFormationLintRule):
                             )
 
         return matches
-

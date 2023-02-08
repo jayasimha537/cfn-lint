@@ -48,21 +48,19 @@ class SchemaPointer:
         if isinstance(doc, Mapping):
             return part
 
-        elif isinstance(doc, Sequence):
-
+        if isinstance(doc, Sequence):
             if part == "-":
                 return part
 
             return int(part)
 
-        elif hasattr(doc, "__getitem__"):
+        if hasattr(doc, "__getitem__"):
             return part
 
-        else:
-            raise KeyError(
-                "Document '%s' does not support indexing, "
-                "must be mapping/sequence or support __getitem__" % type(doc)
-            )
+        raise KeyError(
+            f"Document '{type(doc)}' does not support indexing, "
+            "must be mapping/sequence or support __getitem__"
+        )
 
     def walk(self, obj: Dict, part: str) -> Dict:
         """Walks one step in doc and returns the referenced part
@@ -75,14 +73,14 @@ class SchemaPointer:
         """
 
         part = self.get_part(obj, part)
-        assert hasattr(obj, "__getitem__"), "invalid document type %s" % (type(obj),)
+        assert hasattr(obj, "__getitem__"), f"invalid document type {type(obj)}"
 
         if isinstance(obj, Sequence):
             try:
                 return obj[part]
 
-            except IndexError:
-                raise KeyError("index '%s' is out of bounds" % (part,))
+            except IndexError as e:
+                raise KeyError(f"index '{part}' is out of bounds") from e
 
         try:
             # using a test for typeName as that is a root schema property
@@ -104,6 +102,6 @@ class SchemaPointer:
             if obj.get("$ref"):
                 try:
                     return resolve_pointer(self.obj, f"{obj.get('$ref')}/{part}")
-                except KeyError as e:
-                    raise e
+                except KeyError as ke:
+                    raise ke
             raise e

@@ -7,7 +7,7 @@ import logging
 import os
 import traceback
 from datetime import datetime
-from typing import Any, Dict, List, MutableSet, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, MutableSet, Optional, Tuple, Union
 
 import cfnlint.helpers
 import cfnlint.rules.custom
@@ -16,6 +16,26 @@ from cfnlint.exceptions import DuplicateRuleError
 from cfnlint.template.template import Template
 
 LOGGER = logging.getLogger(__name__)
+
+
+class RuleMatch:
+    """Rules Error"""
+
+    def __init__(self, path, message, **kwargs):
+        """Init"""
+        self.path = path
+        self.path_string = "/".join(map(str, path))
+        self.message = message
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def __eq__(self, item):
+        """Override unique"""
+        return (self.path, self.message) == (item.path, item.message)
+
+    def __hash__(self):
+        """Hash for comparisons"""
+        return hash((self.path, self.message))
 
 
 def matching(match_type: Any):
@@ -198,9 +218,9 @@ class CloudFormationLintRule:
                             elif self.config_definition[key]["itemtype"] == "integer":
                                 self.config[key].append(int(l_value))
 
-    match = None
-    match_resource_properties = None
-    match_resource_sub_properties = None
+    match: Callable[[Template], List[RuleMatch]] = None  # type: ignore
+    match_resource_properties: Callable[[Dict, str, List[str], Template], List[RuleMatch]] = None  # type: ignore
+    match_resource_sub_properties: Callable[[Dict, str, List[str], Template], List[RuleMatch]] = None  # type: ignore
 
     @matching("match")
     # pylint: disable=W0613
@@ -350,20 +370,6 @@ class RulesCollection:
                     )
                 ]
 
-    def resource_property(
-        self, filename, cfn, path, properties, resource_type, property_type
-    ):
-        """Run loops in resource checks for embedded properties"""
-        matches = []
-
-        return matches
-
-    def run_resource(self, filename, cfn, resource_type, resource_properties, path):
-        """Run loops in resource checks for embedded properties"""
-        matches = []
-
-        return matches
-
     def run(self, filename: Optional[str], cfn: Template):
         """Run rules"""
         matches = []
@@ -398,12 +404,6 @@ class RulesCollection:
                         )
                     )
 
-                matches.extend(
-                    self.run_resource(
-                        filename, cfn, resource_type, resource_properties, path
-                    )
-                )
-
         return matches
 
     def create_from_module(self, modpath):
@@ -432,26 +432,6 @@ class RulesCollection:
                     line_number += 1
 
         self.extend(custom_rules)
-
-
-class RuleMatch:
-    """Rules Error"""
-
-    def __init__(self, path, message, **kwargs):
-        """Init"""
-        self.path = path
-        self.path_string = "/".join(map(str, path))
-        self.message = message
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-    def __eq__(self, item):
-        """Override unique"""
-        return (self.path, self.message) == (item.path, item.message)
-
-    def __hash__(self):
-        """Hash for comparisons"""
-        return hash((self.path, self.message))
 
 
 class Match:  # pylint: disable=R0902

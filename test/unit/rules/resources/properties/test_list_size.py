@@ -11,4 +11,3 @@ from cfnlint.rules.resources.properties.ListSize import (
 
 class TestListSize(BaseRuleTestCase):
     """Test List Size Property Configuration"""
-

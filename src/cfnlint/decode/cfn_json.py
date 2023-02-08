@@ -6,12 +6,8 @@ import fileinput
 import json
 import logging
 import sys
-from json.decoder import (  # type: ignore
-    BACKSLASH,
-    STRINGCHUNK,
-    WHITESPACE,
-    WHITESPACE_STR,
-)
+from json.decoder import WHITESPACE  # type: ignore
+from json.decoder import BACKSLASH, STRINGCHUNK, WHITESPACE_STR  # type: ignore
 from json.scanner import NUMBER_RE
 
 import cfnlint
@@ -74,7 +70,6 @@ class JSONDecodeError(ValueError):
     # Note that this exception is used from _json
 
     def __init__(self, doc, pos, errors):
-
         if isinstance(errors, cfnlint.rules.Match):
             errors = [errors]
 
@@ -92,7 +87,6 @@ class JSONDecodeError(ValueError):
 
 
 def build_match(message, doc, pos, key=" "):
-
     lineno = doc.count("\n", 0, pos) + 1
     colno = pos - doc.rfind("\n", 0, pos)
 

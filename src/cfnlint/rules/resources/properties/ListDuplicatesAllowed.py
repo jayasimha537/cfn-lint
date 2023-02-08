@@ -2,10 +2,7 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-import hashlib
-import json
-import warnings
-from cfnlint.rules import CloudFormationLintRule, RuleMatch
+from cfnlint.rules import CloudFormationLintRule
 
 
 class ListDuplicatesAllowed(CloudFormationLintRule):
@@ -19,5 +16,3 @@ class ListDuplicatesAllowed(CloudFormationLintRule):
     )
     source_url = "https://github.com/aws-cloudformation/cfn-python-lint/blob/main/docs/rules.md#rules-1"
     tags = ["resources", "property", "list"]
-
-    

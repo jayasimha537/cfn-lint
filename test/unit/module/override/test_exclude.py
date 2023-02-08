@@ -20,7 +20,7 @@ class TestExclude(BaseTestCase):
         """Setup"""
         self.collection = RulesCollection()
         self.collection.register(Configuration())
-        self.regions = ["us-east-1"]
+        self.region = "us-east-1"
 
     def tearDown(self):
         """Tear Down"""
@@ -31,13 +31,13 @@ class TestExclude(BaseTestCase):
         """Success test"""
         filename = "test/fixtures/templates/good/generic.yaml"
         template = self.load_template(filename)
-        with open("test/fixtures/templates/override_spec/exclude.json") as fp:  
+        with open("test/fixtures/templates/override_spec/exclude.json") as fp:
             p = json.load(fp)
             schema_patch = SchemaPatch.from_dict(p)
 
-        PROVIDER_SCHEMA_MANAGER.patch(schema_patch, regions=self.regions)
+        PROVIDER_SCHEMA_MANAGER._patch(schema_patch, region=self.region)
 
-        good_runner = Runner(self.collection, filename, template, self.regions, [])
+        good_runner = Runner(self.collection, filename, template, [self.region], [])
         self.assertEqual([], good_runner.run())
 
     def test_fail_run(self):
@@ -45,12 +45,12 @@ class TestExclude(BaseTestCase):
         filename = "test/fixtures/templates/bad/override/exclude.yaml"
         template = self.load_template(filename)
 
-        with open("test/fixtures/templates/override_spec/exclude.json") as fp:  
+        with open("test/fixtures/templates/override_spec/exclude.json") as fp:
             p = json.load(fp)
             schema_patch = SchemaPatch.from_dict(p)
 
-        PROVIDER_SCHEMA_MANAGER.patch(schema_patch, regions=self.regions)
+        PROVIDER_SCHEMA_MANAGER._patch(schema_patch, region=self.region)
 
-        bad_runner = Runner(self.collection, filename, template, self.regions, [])
+        bad_runner = Runner(self.collection, filename, template, [self.region], [])
         errs = bad_runner.run()
         self.assertEqual(2, len(errs))

@@ -3,10 +3,9 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
 from typing import Union
-import warnings
+
 from cfnlint.helpers import VALID_PARAMETER_TYPES_LIST
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 
 
 class Join(CloudFormationLintRule):
@@ -105,13 +104,12 @@ class Join(CloudFormationLintRule):
     def _is_getatt_a_list(self, parameter, get_atts) -> Union[bool, None]:
         """Is a GetAtt a List"""
         try:
-            getatt = get_atts.match('us-east-1', parameter)
+            getatt = get_atts.match("us-east-1", parameter)
             if getatt.get("type") == "array" or not getatt:
                 return True
-            else:
-                return False
-        except:
-            # this means we can't match the get_att.  This is 
+            return False
+        except:  # pylint: disable=bare-except
+            # this means we can't match the get_att.  This is
             # covered by another rule
             return None
 
@@ -143,7 +141,7 @@ class Join(CloudFormationLintRule):
                         is_a_list = self._is_getatt_a_list(
                             self._normalize_getatt(value), get_atts
                         )
-                        if is_a_list is not None and not (is_a_list):
+                        if is_a_list is not None and not is_a_list:
                             message = "Fn::Join must use a list at {0}"
                             matches.append(
                                 RuleMatch(

@@ -3,13 +3,17 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
 import logging
-from typing import List, Dict, Union
-from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from jsonschema import validate, Draft7Validator
+import re
+from typing import Dict, Union
+
+from jsonschema import Draft7Validator
 from jsonschema.exceptions import best_match
 from jsonschema.validators import extend
+
 from cfnlint.jsonschema import ValidationError
-import re
+from cfnlint.rules import CloudFormationLintRule, RuleMatch
+from cfnlint.template import Template
+
 LOGGER = logging.getLogger("cfnlint")
 
 
@@ -21,17 +25,18 @@ class GetAtt(CloudFormationLintRule):
     description = "Validates that GetAtt parameters are to valid resources and properties of those resources"
     source_url = "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html"
     tags = ["functions", "getatt"]
-    
-    def _unbool(element, true=object(), false=object()):
+
+    def _unbool(self, element, true=object(), false=object()):
         if element is True:
             return true
-        elif element is False:
+        if element is False:
             return false
         return element
 
+    # pylint: disable=unused-argument
     def _enum(self, validator, enums, instance, schema):
         enums.sort()
-        if instance == 0 or instance == 1:
+        if instance in (0, 1):
             unbooled = self._unbool(instance)
             if all(unbooled != self._unbool(each) for each in enums):
                 yield ValidationError(f"{instance!r} is not one of {enums!r}")
@@ -44,7 +49,7 @@ class GetAtt(CloudFormationLintRule):
 
             yield ValidationError(f"{instance!r} is not one of {enums!r}")
 
-    def match(self, cfn):
+    def match(self, cfn: Template):
         matches = []
         getatts = cfn.search_deep_keys("Fn::GetAtt")
         valid_getatts = cfn.get_valid_getatts()
@@ -63,18 +68,23 @@ class GetAtt(CloudFormationLintRule):
                         if schema.get("type") == "string":
                             validator_schema = schema
                     else:
-                        matches.append(RuleMatch(path=getatt[:-1], message=f"Fn::GetAtt should be a list or a string"))
+                        matches.append(
+                            RuleMatch(
+                                path=getatt[:-1],
+                                message="Fn::GetAtt should be a list or a string",
+                            )
+                        )
 
                     if validator_schema:
-                        validator = extend(validator=Draft7Validator, validators={
-                            "enum": self._enum,
-                        })(schema=validator_schema)
+                        validator = extend(
+                            validator=Draft7Validator,
+                            validators={
+                                "enum": self._enum,
+                            },
+                        )(schema=validator_schema)
                         err = best_match(validator.iter_errors(instance=v))
-                        
 
                 if err:
-                    matches.append(
-                        RuleMatch(path=getatt[:-1], message=err.message)
-                    )
+                    matches.append(RuleMatch(path=getatt[:-1], message=err.message))
 
         return matches

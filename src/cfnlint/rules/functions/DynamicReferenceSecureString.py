@@ -49,7 +49,6 @@ class DynamicReferenceSecureString(CloudFormationLintRule):
             "AWS::Redshift::Cluster": "MasterUserPassword",
         }
 
-
     def _match_values(self, cfnelem, path):
         """Recursively search for values matching the searchRegex"""
         values = []
@@ -66,7 +65,9 @@ class DynamicReferenceSecureString(CloudFormationLintRule):
         else:
             # Leaf node
             if isinstance(cfnelem, str):  # and re.match(searchRegex, cfnelem):
-                for variable in re.findall(cfnlint.helpers.REGEX_DYN_REF_SSM_SECURE, cfnelem):
+                for variable in re.findall(
+                    cfnlint.helpers.REGEX_DYN_REF_SSM_SECURE, cfnelem
+                ):
                     values.append(path + [variable])
 
         return values
@@ -81,10 +82,10 @@ class DynamicReferenceSecureString(CloudFormationLintRule):
         results.extend(self._match_values(cfn.template.get("Globals", {}), []))
         return results
 
-    def _test_list(self, l, sub_l):
+    def _test_list(self, parent_list, child_list):
         result = False
-        for idx in range(len(l) - len(sub_l) + 1):
-            if l[idx: idx + len(sub_l)] == sub_l:
+        for idx in range(len(parent_list) - len(child_list) + 1):
+            if parent_list[idx : idx + len(child_list)] == child_list:
                 result = True
                 break
 
@@ -93,21 +94,20 @@ class DynamicReferenceSecureString(CloudFormationLintRule):
     def match(self, cfn):
         matches = []
         paths = self.match_values(cfn)
-        
+
         for path in paths:
-            message = f'Dynamic reference secure strings are not supported at this location'
+            message = (
+                "Dynamic reference secure strings are not supported at this location"
+            )
             if path[0] == "Resources":
-                resource_type = cfn.template.get("Resources", {}).get(path[1]).get("Type")
+                resource_type = (
+                    cfn.template.get("Resources", {}).get(path[1]).get("Type")
+                )
                 exception = self.exceptions.get(resource_type)
                 if not exception:
-                    matches.append(
-                        RuleMatch(
-                            path[:-1],
-                            f"Invalid use of secure string"
-                        )
-                    )
-                    continue  
-                
+                    matches.append(RuleMatch(path[:-1], message=message))
+                    continue
+
                 if isinstance(exception, dict):
                     matched = False
                     for k, v in exception.items():
@@ -115,28 +115,12 @@ class DynamicReferenceSecureString(CloudFormationLintRule):
                             if v in path:
                                 matched = True
                     if not matched:
-                        matches.append(
-                            RuleMatch(
-                                path[:-1],
-                                message=message
-                            )
-                        )
+                        matches.append(RuleMatch(path[:-1], message=message))
                     continue
-                else:
-                    if not self._test_list(path, ["Properties", exception]):
-                        matches.append(
-                            RuleMatch(
-                                path[:-1],
-                                message=message
-                            )
-                        )
+                if not self._test_list(path, ["Properties", exception]):
+                    matches.append(RuleMatch(path[:-1], message=message))
 
             else:
-                matches.append(
-                    RuleMatch(
-                        path[:-1],
-                        message=message
-                    )
-                )
+                matches.append(RuleMatch(path[:-1], message=message))
 
         return matches

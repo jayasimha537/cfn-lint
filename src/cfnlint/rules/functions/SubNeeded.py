@@ -119,7 +119,8 @@ class SubNeeded(CloudFormationLintRule):
             ):
                 try:
                     if (
-                        var_stripped in refs or getatts.match(cfn.regions[0], var_stripped)
+                        var_stripped in refs
+                        or getatts.match(cfn.regions[0], var_stripped)
                     ) or "DefinitionString" in parameter_string_path:
                         # Remove the last item (the variable) to prevent multiple errors on 1 line errors
                         path = parameter_string_path[:-1]

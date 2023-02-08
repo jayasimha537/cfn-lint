@@ -2,12 +2,13 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-import re
 import datetime
 import json
-from cfnlint.rules import CloudFormationLintRule
-from cfnlint.jsonschema import ValidationError
+import re
+
 from cfnlint.helpers import FUNCTIONS
+from cfnlint.jsonschema import ValidationError
+from cfnlint.rules import CloudFormationLintRule
 
 
 class StringSize(CloudFormationLintRule):
@@ -58,16 +59,12 @@ class StringSize(CloudFormationLintRule):
 
     def _non_string_max_length(self, instance, mL):
         j = self._remove_functions(instance)
-        if (
-            len(json.dumps(j, separators=(",", ":"), default=self._serialize_date))
-            > mL
-        ):
-            yield ValidationError(f"Item is too long")
+        if len(json.dumps(j, separators=(",", ":"), default=self._serialize_date)) > mL:
+            yield ValidationError("Item is too long")
 
-
+    # pylint: disable=unused-argument
     def maxLength(self, validator, mL, instance, schema):
         if validator.is_type(instance, "object"):
             yield from self._non_string_max_length(instance, mL)
         elif validator.is_type(instance, "string") and len(instance) > mL:
             yield ValidationError(f"{instance!r} is too long")
-

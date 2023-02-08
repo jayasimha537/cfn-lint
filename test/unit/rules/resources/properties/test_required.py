@@ -13,4 +13,3 @@ from cfnlint.rules.resources.properties.Required import (
 
 class TestResourceConfiguration(BaseRuleTestCase):
     """Test Resource Properties"""
-

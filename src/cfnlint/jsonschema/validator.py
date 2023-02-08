@@ -1,20 +1,28 @@
 from __future__ import annotations
-import attr
+
 import reprlib
-import typing
-import warnings
-from operator import methodcaller
-from cfnlint.jsonschema.exceptions import ValidationError
-from jsonschema.validators import validator_for, RefResolver
-from typing import Mapping, Any, Union, Iterable, Dict, Callable, Optional, List, TYPE_CHECKING
-from cfnlint.jsonschema import _validators
-from cfnlint.jsonschema import _types
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Mapping,
+    Optional,
+    Union,
+)
+
+import attr
+from jsonschema import exceptions
+from jsonschema.validators import RefResolver, validator_for
+
 from cfnlint.helpers import load_resource
-from copy import deepcopy
+from cfnlint.jsonschema import _types, _validators
+from cfnlint.jsonschema.exceptions import ValidationError
 
 if TYPE_CHECKING:
-    from cfnlint.template import Template
     from cfnlint.rules import CloudFormationLintRule
+    from cfnlint.template import Template
 
 
 def _id_of(schema):
@@ -24,6 +32,7 @@ def _id_of(schema):
     if schema is True or schema is False:
         return ""
     return schema.get("$id", "")
+
 
 _cfn_validators: Dict[str, Callable[[Any, Any, Any, Any], Any]] = {
     "$ref": _validators.ref,
@@ -59,10 +68,11 @@ _cfn_validators: Dict[str, Callable[[Any, Any, Any, Any], Any]] = {
     "uniqueItems": _validators.uniqueItems,
 }
 
+
 def create(
     validators=(),
     cfn: Optional[Template] = None,
-    rules: Dict[str, CloudFormationLintRule] = {},
+    rules: Optional[Dict[str, CloudFormationLintRule]] = None,
 ):
     """
     Create a new validator class.
@@ -79,12 +89,12 @@ def create(
     Returns:
         a new `jsonschema.protocols.Validator` class
     """
-    applicable_validators=_validators.ignore_ref_siblings
+    applicable_validators = _validators.ignore_ref_siblings
 
     validators_arg = _cfn_validators.copy()
     validators_arg.update(validators)
     if rules is not None:
-        for js in validators_arg.keys():
+        for js in validators_arg:
             rule = rules.get(js)
             if rule is not None:
                 if hasattr(rule, "validate_configure") and callable(
@@ -120,9 +130,11 @@ def create(
         """
 
         VALIDATORS = dict(validators_arg)
-        META_SCHEMA = dict(load_resource(
-            f"cfnlint.data.AdditionalSchemas.json-schema", filename=(f"draft7.json")
-        ))
+        META_SCHEMA = dict(
+            load_resource(
+                "cfnlint.data.AdditionalSchemas.json-schema", filename=("draft7.json")
+            )
+        )
         TYPE_CHECKER = _types.cfn_type_checker
         FORMAT_CHECKER = None
         ID_OF = staticmethod(_id_of)
@@ -150,13 +162,13 @@ def create(
         def check_schema(cls, schema: Mapping) -> None:
             pass
 
-        def is_type(self, instance: Any, type: str) -> bool:
+        def is_type(self, instance: Any, t: str) -> bool:
             """
             Check if the instance is of the given (JSON Schema) type.
             Arguments:
                 instance:
                     the value to check
-                type:
+                t:
                     the name of a known (JSON Schema) type
             Returns:
                 whether the instance is of the given type
@@ -165,9 +177,9 @@ def create(
                     if ``type`` is not a known type
             """
             try:
-                return self.TYPE_CHECKER.is_type(instance, type)
-            except exceptions.UndefinedTypeCheck:
-                raise exceptions.UnknownType(type, instance, self.schema)
+                return self.TYPE_CHECKER.is_type(instance, t)
+            except exceptions.UndefinedTypeCheck as e:
+                raise exceptions.UnknownType(t, instance, self.schema) from e
 
         def is_valid(self, instance: Any) -> bool:
             """
@@ -181,7 +193,7 @@ def create(
             error = next(self.iter_errors(instance), None)
             return error is None
 
-        def iter_errors(self, instance: Any) -> Iterable[exceptions.ValidationError]:
+        def iter_errors(self, instance: Any) -> Iterable[ValidationError]:
             r"""
             Lazily yield each of the validation errors in the given instance.
             >>> schema = {
@@ -202,8 +214,8 @@ def create(
 
             if _schema is True:
                 return
-            elif _schema is False:
-                yield exceptions.ValidationError(
+            if _schema is False:
+                yield ValidationError(
                     f"False schema does not allow {instance!r}",
                     validator=None,
                     validator_value=None,
@@ -232,7 +244,7 @@ def create(
                                             error.path.appendleft("Fn::If")
                                             yield error
                                 return
-                            elif k == "Ref":
+                            if k == "Ref":
                                 if v == "AWS::NoValue":
                                     # This is equivalent to an empty object
                                     instance = {}
@@ -246,7 +258,7 @@ def create(
                         # set details if not already set by the called fn
                         if error is None:
                             continue
-                        error._set(
+                        error.set(
                             validator=k,
                             validator_value=v,
                             instance=instance,

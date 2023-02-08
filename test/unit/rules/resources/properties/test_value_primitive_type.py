@@ -11,6 +11,7 @@ from cfnlint.rules.resources.properties.ValuePrimitiveType import (  # pylint: d
     ValuePrimitiveType,
 )
 
+
 class TestResourceValuePrimitiveTypeCheckValue(BaseRuleTestCase):
     """Test Check Value for maps"""
 

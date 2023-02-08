@@ -1,11 +1,7 @@
-import json
-import sys
-from collections import UserDict
 from copy import deepcopy
-from dataclasses import dataclass
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple
+
 import jsonpatch
-import pkg_resources
 
 from cfnlint.schema._pointer import resolve_pointer
 
@@ -77,7 +73,6 @@ class Schema:
         """
         jsonpatch.JsonPatch(patches).apply(self._json_schema, in_place=True)
 
-
     def get_ref(self) -> Dict[str, dict]:
         """Get the ref schema
 
@@ -89,7 +84,7 @@ class Schema:
         for ro_attr in self.schema.get("readOnlyProperties", []):
             try:
                 attrs.update(self._flatten_getatts(ro_attr)[0].items())
-            except KeyError as e:
+            except KeyError:
                 pass
 
         return attrs
@@ -107,7 +102,7 @@ class Schema:
         for ro_attr in self.schema.get("readOnlyProperties", []):
             try:
                 attrs.update(self._flatten_getatts(ro_attr)[0].items())
-            except KeyError as e:
+            except KeyError:
                 pass
 
         return attrs

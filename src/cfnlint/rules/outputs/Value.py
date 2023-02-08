@@ -2,11 +2,10 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-import warnings
-from typing import Dict, List
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from cfnlint.template.template import Template
 from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.template.template import Template
+
 
 class Value(CloudFormationLintRule):
     """Check if Outputs have string values"""
@@ -16,7 +15,6 @@ class Value(CloudFormationLintRule):
     description = "Making sure the outputs have strings as values"
     source_url = "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html"
     tags = ["outputs"]
-
 
     def match(self, cfn: Template):
         matches = []
@@ -36,7 +34,9 @@ class Value(CloudFormationLintRule):
                             template.get("Resources", {}).get(obj[0], {}).get("Type")
                         )
                         if objtype:
-                            res_schema = PROVIDER_SCHEMA_MANAGER.get_resource_schema(cfn.regions[0], objtype)
+                            res_schema = PROVIDER_SCHEMA_MANAGER.get_resource_schema(
+                                cfn.regions[0], objtype
+                            )
                             attribute = res_schema.get_atts().get(obj[1])
                             # Bad schema or bad attribute.  Skip if either is true
                             if attribute:
@@ -47,7 +47,9 @@ class Value(CloudFormationLintRule):
                                         matches.append(
                                             RuleMatch(
                                                 getatt,
-                                                message.format(getatt[1], "/".join(obj)),
+                                                message.format(
+                                                    getatt[1], "/".join(obj)
+                                                ),
                                             )
                                         )
 

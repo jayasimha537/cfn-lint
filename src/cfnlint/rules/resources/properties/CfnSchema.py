@@ -10,8 +10,5 @@ class RequiredBasedOnValue(CloudFormationLintRule):
 
     id = "E3017"
     shortdesc = "Properties are validated against additional schemas"
-    description = (
-        "Use supplemental JSON schemas to validate properties against"
-    )
+    description = "Use supplemental JSON schemas to validate properties against"
     tags = ["resources"]
-

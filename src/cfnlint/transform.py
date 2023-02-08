@@ -12,14 +12,15 @@ from samtranslator.sdk import resource
 from samtranslator.translator.translator import Translator
 
 from cfnlint.data import Serverless
-from cfnlint.helpers import format_json_string, load_resource
 from cfnlint.decode.node import convert_dict
+from cfnlint.helpers import format_json_string, load_resource
 from cfnlint.rules import Match, TransformError
 
 LOGGER = logging.getLogger("cfnlint")
 
 samtranslator_logger = logging.getLogger("samtranslator")
 samtranslator_logger.setLevel(logging.CRITICAL)
+
 
 # Override SAM validation as cfn-lint does thoese
 # checks already
@@ -85,12 +86,10 @@ class Transform:
                             self._parameters[v] = "Alias"
 
         for _, resource in all_resources.items():
-
             resource_type = resource.get("Type")
             resource_dict = resource.get("Properties")
 
             if resource_type == "AWS::Serverless::Function":
-
                 if resource_dict.get("PackageType") == "Image":
                     Transform._update_to_s3_uri("ImageUri", resource_dict)
                 else:

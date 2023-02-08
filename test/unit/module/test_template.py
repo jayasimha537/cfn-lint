@@ -1032,13 +1032,11 @@ ElasticLoadBalancer -> MyEC2Instance  [color=black, key=0, label=Ref, source_pat
             template.template.get("Resources", {}).get("Test", {}),
             ["Resources", "Test"],
         )
-        self.assertEqual(results, [{'Object': {}, 'Scenario': None}])
+        self.assertEqual(results, [{"Object": {}, "Scenario": None}])
         results = template.get_object_without_nested_conditions(
             template.template.get("Resources", {}), ["Resources"]
         )
-        self.assertEqual(
-            results, [{"Object": {}, "Scenario": None}]
-        )
+        self.assertEqual(results, [{"Object": {}, "Scenario": None}])
 
     def test_get_condition_scenarios_below_path(self):
         """Test Getting condition names in an object/list"""

@@ -7,9 +7,9 @@ and https://github.com/python-jsonschema/jsonschema/blob/main/jsonschema/_legacy
 adapted for CloudFormation usage
 """
 
+import re
 from fractions import Fraction
 from urllib.parse import urldefrag, urljoin
-import re
 
 from jsonschema._utils import (
     ensure_list,
@@ -21,10 +21,11 @@ from jsonschema._utils import (
     unbool,
     uniq,
 )
+
 from cfnlint.jsonschema.exceptions import ValidationError
 
 
-def id_of_ignore_ref(property="$id"):
+def id_of_ignore_ref(prop="$id"):
     def id_of(schema):
         """
         Ignore an ``$id`` sibling of ``$ref`` if it is present.
@@ -32,7 +33,7 @@ def id_of_ignore_ref(property="$id"):
         """
         if schema is True or schema is False or "$ref" in schema:
             return ""
-        return schema.get(property, "")
+        return schema.get(prop, "")
 
     return id_of
 
@@ -43,13 +44,14 @@ def ignore_ref_siblings(schema):
     Otherwise, return all keywords.
     Suitable for use with `create`'s ``applicable_validators`` argument.
     """
-    ref = schema.get("$ref")
-    if ref is not None:
-        return [("$ref", ref)]
-    else:
-        return schema.items()
+    ref_link = schema.get("$ref")
+    if ref_link is not None:
+        return [("$ref", ref_link)]
+
+    return schema.items()
 
 
+# pylint: disable=unused-argument
 def dependencies_draft4_draft6_draft7(
     validator,
     dependencies,
@@ -63,54 +65,57 @@ def dependencies_draft4_draft6_draft7(
     """
 
 
-def contains_draft6_draft7(validator, contains, instance, schema):
+def contains_draft6_draft7(validator, cs, instance, schema):
     if not validator.is_type(instance, "array"):
         return
 
-    if not any(
-        validator.evolve(schema=contains).is_valid(element)
-        for element in instance
-    ):
+    if not any(validator.evolve(schema=cs).is_valid(element) for element in instance):
         yield ValidationError(
             f"None of {instance!r} are valid under the given schema",
         )
 
 
-def items_draft6_draft7_draft201909(validator, items, instance, schema):
+# pylint: disable=unused-argument
+def items_draft6_draft7_draft201909(validator, iS, instance, schema):
     if not validator.is_type(instance, "array"):
         return
 
-    if validator.is_type(items, "array"):
-        for (index, item), subschema in zip(enumerate(instance), items):
+    if validator.is_type(iS, "array"):
+        for (index, item), subschema in zip(enumerate(instance), iS):
             yield from validator.descend(
-                item, subschema, path=index, schema_path=index,
+                item,
+                subschema,
+                path=index,
+                schema_path=index,
             )
     else:
         for index, item in enumerate(instance):
-            yield from validator.descend(item, items, path=index)
+            yield from validator.descend(item, iS, path=index)
 
 
-def patternProperties(validator, patternProperties, instance, schema):
+# pylint: disable=unused-argument
+def patternProperties(validator, pProps, instance, schema):
     if not validator.is_type(instance, "object"):
         return
 
-    for pattern, subschema in patternProperties.items():
+    for _pattern, subschema in pProps.items():
         for k, v in instance.items():
-            if re.search(pattern, k):
+            if re.search(_pattern, k):
                 yield from validator.descend(
                     v,
                     subschema,
                     path=k,
-                    schema_path=pattern,
+                    schema_path=_pattern,
                 )
 
 
-def propertyNames(validator, propertyNames, instance, schema):
+# pylint: disable=unused-argument
+def propertyNames(validator, pNames, instance, schema):
     if not validator.is_type(instance, "object"):
         return
 
-    for property in instance:
-        yield from validator.descend(instance=property, schema=propertyNames)
+    for prop in instance:
+        yield from validator.descend(instance=prop, schema=pNames)
 
 
 def additionalProperties(validator, aP, instance, schema):
@@ -141,20 +146,20 @@ def additionalProperties(validator, aP, instance, schema):
                 yield ValidationError(error % extra, path=[extra])
 
 
-def items(validator, items, instance, schema):
+def items(validator, iS, instance, schema):
     if not validator.is_type(instance, "array"):
         return
 
     prefix = len(schema.get("prefixItems", []))
     total = len(instance)
-    if items is False and total > prefix:
+    if iS is False and total > prefix:
         message = f"Expected at most {prefix} items, but found {total}"
         yield ValidationError(message)
     else:
         for index in range(prefix, total):
             yield from validator.descend(
                 instance=instance[index],
-                schema=items,
+                schema=iS,
                 path=index,
             )
 
@@ -176,12 +181,13 @@ def additionalItems(validator, aI, instance, schema):
         )
 
 
-def const(validator, const, instance, schema):
-    if not equal(instance, const):
-        yield ValidationError(f"{const!r} was expected")
+# pylint: disable=unused-argument
+def const(validator, c, instance, schema):
+    if not equal(instance, c):
+        yield ValidationError(f"{c!r} was expected")
 
 
-def contains(validator, contains, instance, schema):
+def contains(validator, cS, instance, schema):
     if not validator.is_type(instance, "array"):
         return
 
@@ -190,7 +196,7 @@ def contains(validator, contains, instance, schema):
     max_contains = schema.get("maxContains", len(instance))
 
     for each in instance:
-        if validator.evolve(schema=contains).is_valid(each):
+        if validator.evolve(schema=cS).is_valid(each):
             matches += 1
             if matches > max_contains:
                 yield ValidationError(
@@ -215,44 +221,49 @@ def contains(validator, contains, instance, schema):
             )
 
 
-def exclusiveMinimum(validator, minimum, instance, schema):
+# pylint: disable=unused-argument
+def exclusiveMinimum(validator, m, instance, schema):
     if not validator.is_type(instance, "number"):
         return
 
-    if instance <= minimum:
+    if instance <= m:
         yield ValidationError(
-            f"{instance!r} is less than or equal to " f"the minimum of {minimum!r}",
+            f"{instance!r} is less than or equal to " f"the minimum of {m!r}",
         )
 
 
-def exclusiveMaximum(validator, maximum, instance, schema):
+# pylint: disable=unused-argument
+def exclusiveMaximum(validator, m, instance, schema):
     if not validator.is_type(instance, "number"):
         return
 
-    if instance >= maximum:
+    if instance >= m:
         yield ValidationError(
-            f"{instance!r} is greater than or equal " f"to the maximum of {maximum!r}",
+            f"{instance!r} is greater than or equal " f"to the maximum of {m!r}",
         )
 
 
-def minimum(validator, minimum, instance, schema):
+# pylint: disable=unused-argument
+def minimum(validator, m, instance, schema):
     if not validator.is_type(instance, "number"):
         return
 
-    if instance < minimum:
-        message = f"{instance!r} is less than the minimum of {minimum!r}"
+    if instance < m:
+        message = f"{instance!r} is less than the minimum of {m!r}"
         yield ValidationError(message)
 
 
-def maximum(validator, maximum, instance, schema):
+# pylint: disable=unused-argument
+def maximum(validator, m, instance, schema):
     if not validator.is_type(instance, "number"):
         return
 
-    if instance > maximum:
-        message = f"{instance!r} is greater than the maximum of {maximum!r}"
+    if instance > m:
+        message = f"{instance!r} is greater than the maximum of {m!r}"
         yield ValidationError(message)
 
 
+# pylint: disable=unused-argument
 def multipleOf(validator, dB, instance, schema):
     if not validator.is_type(instance, "number"):
         return
@@ -280,66 +291,75 @@ def multipleOf(validator, dB, instance, schema):
         yield ValidationError(f"{instance!r} is not a multiple of {dB}")
 
 
+# pylint: disable=unused-argument
 def minItems(validator, mI, instance, schema):
     if validator.is_type(instance, "array") and len(instance) < mI:
         yield ValidationError(f"{instance!r} is too short")
 
 
+# pylint: disable=unused-argument
 def maxItems(validator, mI, instance, schema):
     if validator.is_type(instance, "array") and len(instance) > mI:
         yield ValidationError(f"{instance!r} is too long")
 
 
+# pylint: disable=unused-argument
 def uniqueItems(validator, uI, instance, schema):
     if uI and validator.is_type(instance, "array") and not uniq(instance):
         yield ValidationError(f"{instance!r} has non-unique elements")
 
 
+# pylint: disable=unused-argument
 def pattern(validator, patrn, instance, schema):
     if validator.is_type(instance, "string") and not re.search(patrn, instance):
         yield ValidationError(f"{instance!r} does not match {patrn!r}")
 
 
+# pylint: disable=unused-argument
 def minLength(validator, mL, instance, schema):
     if validator.is_type(instance, "string") and len(instance) < mL:
         yield ValidationError(f"{instance!r} is too short")
 
 
+# pylint: disable=unused-argument
 def maxLength(validator, mL, instance, schema):
     if validator.is_type(instance, "string") and len(instance) > mL:
         yield ValidationError(f"{instance!r} is too long")
 
 
-def dependentRequired(validator, dependentRequired, instance, schema):
+# pylint: disable=unused-argument
+def dependentRequired(validator, dR, instance, schema):
     if not validator.is_type(instance, "object"):
         return
 
-    for property, dependency in dependentRequired.items():
-        if property not in instance:
+    for prop, dependency in dR.items():
+        if prop not in instance:
             continue
 
         for each in dependency:
             if each not in instance:
-                message = f"{each!r} is a dependency of {property!r}"
+                message = f"{each!r} is a dependency of {prop!r}"
                 yield ValidationError(message)
 
 
-def dependentSchemas(validator, dependentSchemas, instance, schema):
+# pylint: disable=unused-argument
+def dependentSchemas(validator, dSchemas, instance, schema):
     if not validator.is_type(instance, "object"):
         return
 
-    for property, dependency in dependentSchemas.items():
-        if property not in instance:
+    for prop, dependency in dSchemas.items():
+        if prop not in instance:
             continue
         yield from validator.descend(
             instance,
             dependency,
-            schema_path=property,
+            schema_path=prop,
         )
 
 
+# pylint: disable=unused-argument
 def enum(validator, enums, instance, schema):
-    if instance == 0 or instance == 1:
+    if instance in (0, 1):
         unbooled = unbool(instance)
         if all(unbooled != unbool(each) for each in enums):
             yield ValidationError(f"{instance!r} is not one of {enums!r}")
@@ -347,13 +367,14 @@ def enum(validator, enums, instance, schema):
         yield ValidationError(f"{instance!r} is not one of {enums!r}")
 
 
-def ref(validator, ref, instance, schema):
+# pylint: disable=unused-argument
+def ref(validator, r, instance, schema):
     resolve = getattr(validator.resolver, "resolve", None)
     if resolve is None:
-        with validator.resolver.resolving(ref) as resolved:
+        with validator.resolver.resolving(r) as resolved:
             yield from validator.descend(instance, resolved)
     else:
-        scope, resolved = validator.resolver.resolve(ref)
+        scope, resolved = validator.resolver.resolve(r)
         validator.resolver.push_scope(scope)
 
         try:
@@ -362,11 +383,13 @@ def ref(validator, ref, instance, schema):
             validator.resolver.pop_scope()
 
 
-def dynamicRef(validator, dynamicRef, instance, schema):
-    _, fragment = urldefrag(dynamicRef)
+# pylint: disable=unused-argument
+def dynamicRef(validator, dR, instance, schema):
+    _, fragment = urldefrag(dR)
 
+    # pylint: disable=protected-access
     for url in validator.resolver._scopes_stack:
-        lookup_url = urljoin(url, dynamicRef)
+        lookup_url = urljoin(url, dR)
         with validator.resolver.resolving(lookup_url) as subschema:
             if (
                 "$dynamicAnchor" in subschema
@@ -375,45 +398,50 @@ def dynamicRef(validator, dynamicRef, instance, schema):
                 yield from validator.descend(instance, subschema)
                 break
     else:
-        with validator.resolver.resolving(dynamicRef) as subschema:
+        with validator.resolver.resolving(dR) as subschema:
             yield from validator.descend(instance, subschema)
 
 
-def type(validator, types, instance, schema):
-    types = ensure_list(types)
+# pylint: disable=unused-argument,redefined-builtin
+def type(validator, tS, instance, schema):
+    tS = ensure_list(tS)
 
-    if not any(validator.is_type(instance, type) for type in types):
-        reprs = ", ".join(repr(type) for type in types)
+    if not any(validator.is_type(instance, type) for type in tS):
+        reprs = ", ".join(repr(type) for type in tS)
         yield ValidationError(f"{instance!r} is not of type {reprs}")
 
 
-def properties(validator, properties, instance, schema):
+# pylint: disable=unused-argument
+def properties(validator, props, instance, schema):
     if not validator.is_type(instance, "object"):
         return
 
-    for property, subschema in properties.items():
-        if property in instance:
+    for prop, subschema in props.items():
+        if prop in instance:
             yield from validator.descend(
-                instance[property],
+                instance[prop],
                 subschema,
-                path=property,
-                schema_path=property,
+                path=prop,
+                schema_path=prop,
             )
 
 
-def required(validator, required, instance, schema):
+# pylint: disable=unused-argument
+def required(validator, r, instance, schema):
     if not validator.is_type(instance, "object"):
         return
-    for property in required:
-        if property not in instance:
-            yield ValidationError(f"{property!r} is a required property")
+    for prop in r:
+        if prop not in instance:
+            yield ValidationError(f"{prop!r} is a required property")
 
 
+# pylint: disable=unused-argument
 def minProperties(validator, mP, instance, schema):
     if validator.is_type(instance, "object") and len(instance) < mP:
         yield ValidationError(f"{instance!r} does not have enough properties")
 
 
+# pylint: disable=unused-argument
 def maxProperties(validator, mP, instance, schema):
     if not validator.is_type(instance, "object"):
         return
@@ -421,14 +449,16 @@ def maxProperties(validator, mP, instance, schema):
         yield ValidationError(f"{instance!r} has too many properties")
 
 
-def allOf(validator, allOf, instance, schema):
-    for index, subschema in enumerate(allOf):
+# pylint: disable=unused-argument
+def allOf(validator, aO, instance, schema):
+    for index, subschema in enumerate(aO):
         yield from validator.descend(instance, subschema, schema_path=index)
 
 
-def anyOf(validator, anyOf, instance, schema):
+# pylint: disable=unused-argument
+def anyOf(validator, aO, instance, schema):
     all_errors = []
-    for index, subschema in enumerate(anyOf):
+    for index, subschema in enumerate(aO):
         errs = list(validator.descend(instance, subschema, schema_path=index))
         if not errs:
             break
@@ -440,8 +470,9 @@ def anyOf(validator, anyOf, instance, schema):
         )
 
 
-def oneOf(validator, oneOf, instance, schema):
-    subschemas = enumerate(oneOf)
+# pylint: disable=unused-argument
+def oneOf(validator, oO, instance, schema):
+    subschemas = enumerate(oO)
     all_errors = []
     for index, subschema in subschemas:
         errs = list(validator.descend(instance, subschema, schema_path=index))
@@ -466,6 +497,7 @@ def oneOf(validator, oneOf, instance, schema):
         yield ValidationError(f"{instance!r} is valid under each of {reprs}")
 
 
+# pylint: disable=unused-argument
 def not_(validator, not_schema, instance, schema):
     if validator.evolve(schema=not_schema).is_valid(instance):
         message = f"{instance!r} should not be valid under {not_schema!r}"
@@ -482,7 +514,8 @@ def if_(validator, if_schema, instance, schema):
         yield from validator.descend(instance, else_, schema_path="else")
 
 
-def unevaluatedItems(validator, unevaluatedItems, instance, schema):
+# pylint: disable=unused-argument
+def unevaluatedItems(validator, uItems, instance, schema):
     if not validator.is_type(instance, "array"):
         return
     evaluated_item_indexes = find_evaluated_item_indexes_by_schema(
@@ -490,17 +523,17 @@ def unevaluatedItems(validator, unevaluatedItems, instance, schema):
         instance,
         schema,
     )
-    unevaluated_items = [
+    uItems = [
         item
         for index, item in enumerate(instance)
         if index not in evaluated_item_indexes
     ]
-    if unevaluated_items:
+    if uItems:
         error = "Unevaluated items are not allowed (%s %s unexpected)"
-        yield ValidationError(error % extras_msg(unevaluated_items))
+        yield ValidationError(error % extras_msg(uItems))
 
 
-def unevaluatedProperties(validator, unevaluatedProperties, instance, schema):
+def unevaluatedProperties(validator, uProps, instance, schema):
     if not validator.is_type(instance, "object"):
         return
     evaluated_keys = find_evaluated_property_keys_by_schema(
@@ -509,20 +542,18 @@ def unevaluatedProperties(validator, unevaluatedProperties, instance, schema):
         schema,
     )
     unevaluated_keys = []
-    for property in instance:
-        if property not in evaluated_keys:
+    for prop in instance:
+        if prop not in evaluated_keys:
             for _ in validator.descend(
-                instance[property],
-                unevaluatedProperties,
-                path=property,
-                schema_path=property,
+                instance[prop],
+                uProps,
+                path=prop,
+                schema_path=prop,
             ):
-                # FIXME: Include context for each unevaluated property
-                #        indicating why it's invalid under the subschema.
-                unevaluated_keys.append(property)
+                unevaluated_keys.append(prop)
 
     if unevaluated_keys:
-        if unevaluatedProperties is False:
+        if uProps is False:
             error = "Unevaluated properties are not allowed (%s %s unexpected)"
             yield ValidationError(error % extras_msg(unevaluated_keys))
         else:
@@ -533,15 +564,15 @@ def unevaluatedProperties(validator, unevaluatedProperties, instance, schema):
             yield ValidationError(error % extras_msg(unevaluated_keys))
 
 
-def prefixItems(validator, prefixItems, instance, schema):
+# pylint: disable=unused-argument
+def prefixItems(validator, pItems, instance, schema):
     if not validator.is_type(instance, "array"):
         return
 
-    for (index, item), subschema in zip(enumerate(instance), prefixItems):
+    for (index, item), subschema in zip(enumerate(instance), pItems):
         yield from validator.descend(
             instance=item,
             schema=subschema,
             schema_path=index,
             path=index,
         )
-

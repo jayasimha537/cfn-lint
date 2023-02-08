@@ -2,9 +2,9 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-from cfnlint.rules import CloudFormationLintRule
-from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 from cfnlint.jsonschema import ValidationError
+from cfnlint.rules import CloudFormationLintRule
+
 
 class AllowedValue(CloudFormationLintRule):
     """Check if properties have a valid value"""
@@ -21,10 +21,11 @@ class AllowedValue(CloudFormationLintRule):
     def _unbool(self, element, true=object(), false=object()):
         if element is True:
             return true
-        elif element is False:
+        if element is False:
             return false
         return element
 
+    # pylint: disable=unused-argument
     def enum(self, validator, enums, instance, schema):
         if isinstance(instance, dict):
             if len(instance) == 1:
@@ -32,10 +33,9 @@ class AllowedValue(CloudFormationLintRule):
                     if k == "Ref":
                         yield from self.child_rules["W2030"].validate(v, enums)
                         return
-        if instance == 0 or instance == 1:
+        if instance in (0, 1):
             unbooled = self._unbool(instance)
             if all(unbooled != self._unbool(each) for each in enums):
                 yield ValidationError(f"{instance!r} is not one of {enums!r}")
         elif instance not in enums:
             yield ValidationError(f"{instance!r} is not one of {enums!r}")
-        

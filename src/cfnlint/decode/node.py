@@ -5,8 +5,8 @@ SPDX-License-Identifier: MIT-0
 import logging
 import re
 from copy import deepcopy
-from cfnlint.decode.exceptions import TemplateAttributeError
 
+from cfnlint.decode.exceptions import TemplateAttributeError
 
 LOGGER = logging.getLogger(__name__)
 

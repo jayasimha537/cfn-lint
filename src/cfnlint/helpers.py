@@ -22,7 +22,6 @@ from urllib.request import Request, urlopen, urlretrieve
 
 import jsonpatch
 
-
 LOGGER = logging.getLogger(__name__)
 
 SPEC_REGIONS = {
@@ -207,6 +206,7 @@ VALID_PARAMETER_TYPES_LIST = [
 
 VALID_PARAMETER_TYPES = VALID_PARAMETER_TYPES_SINGLE + VALID_PARAMETER_TYPES_LIST
 
+
 # pylint: disable=missing-class-docstring
 class RegexDict(dict):
     def __getitem__(self, item):
@@ -376,6 +376,7 @@ def load_resource(package, filename="us-east-1.json"):
         )
     return json.loads(pkg_resources.read_text(package, filename, encoding="utf-8"))
 
+
 REGISTRY_SCHEMAS: List[dict] = []
 
 
@@ -390,12 +391,6 @@ def merge_spec(source, destination):
             destination[key] = value
 
     return destination
-
-
-def set_specs(override_spec_data):
-    """Override Resource Specs"""
-
-    LOGGER.warning("This feature does not work with schemas")
 
 
 def is_custom_resource(resource_type):
@@ -491,33 +486,6 @@ def load_plugins(directory):
                 result.extend(create_rules(mod))
 
     return result
-
-
-def override_specs(override_spec_file):
-    """Override specs file"""
-    try:
-        filename = override_spec_file
-        with open(filename, encoding="utf-8") as fp:
-            custom_spec_data = json.load(fp)
-
-        set_specs(custom_spec_data)
-    except IOError as e:
-        if e.errno == 2:
-            LOGGER.error("Override spec file not found: %s", filename)
-            sys.exit(1)
-        elif e.errno == 21:
-            LOGGER.error(
-                "Override spec file references a directory, not a file: %s", filename
-            )
-            sys.exit(1)
-        elif e.errno == 13:
-            LOGGER.error(
-                "Permission denied when accessing override spec file: %s", filename
-            )
-            sys.exit(1)
-    except (ValueError) as err:
-        LOGGER.error("Override spec file %s is malformed: %s", filename, err)
-        sys.exit(1)
 
 
 def apply_json_patch(data: Dict, patches: List[Dict], region: str) -> Dict:

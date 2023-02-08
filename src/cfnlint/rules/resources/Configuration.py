@@ -3,14 +3,11 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
 import cfnlint.helpers
-from cfnlint.helpers import REGISTRY_SCHEMAS
+from cfnlint.data.AdditionalSchemas import resource
+from cfnlint.jsonschema import ValidationError
+from cfnlint.jsonschema import create as create_validator
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
-from jsonschema import Draft7Validator
-from jsonschema.validators import extend
-from cfnlint.helpers import load_resource
-from cfnlint.data.AdditionalSchemas import resource
-from cfnlint.jsonschema import ValidationError, create as create_validator
 
 
 class Configuration(CloudFormationLintRule):
@@ -31,13 +28,16 @@ class Configuration(CloudFormationLintRule):
         self.validator = create_validator(
             validators={
                 "cfnType": self._cfnType,
-            }, cfn=None, rules=None
+            },
+            cfn=None,
+            rules=None,
         )(schema=schema)
 
     def initialize(self, cfn):
         super().initialize(cfn)
         self.regions = cfn.regions
 
+    # pylint: disable=unused-argument
     def _cfnType(self, validator, iT, instance, schema):
         if not validator.is_type(instance, "string"):
             return
@@ -51,6 +51,7 @@ class Configuration(CloudFormationLintRule):
                     f"Resource type `{instance}` does not exist in '{region}'"
                 )
 
+    # pylint: disable=unused-argument
     def _check_resource(self, cfn, resource_name, resource_values):
         """Check Resource"""
         matches = []

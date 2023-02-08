@@ -19,7 +19,7 @@ class TestInclude(BaseTestCase):
         """Setup"""
         self.collection = RulesCollection()
         self.collection.register(Configuration())
-        self.regions = ["us-east-1"]
+        self.region = "us-east-1"
 
     def tearDown(self):
         """Tear Down"""
@@ -35,8 +35,8 @@ class TestInclude(BaseTestCase):
             p = json.load(fp)
             schema_patch = SchemaPatch.from_dict(p)
 
-        PROVIDER_SCHEMA_MANAGER.patch(schema_patch, regions=self.regions)
+        PROVIDER_SCHEMA_MANAGER._patch(schema_patch, region=self.region)
 
-        bad_runner = Runner(self.collection, filename, template, self.regions, [])
+        bad_runner = Runner(self.collection, filename, template, [self.region], [])
         errs = bad_runner.run()
         self.assertEqual(2, len(errs))

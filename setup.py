@@ -4,8 +4,8 @@ SPDX-License-Identifier: MIT-0
 """
 import codecs
 import re
-from setuptools import find_packages
-from setuptools import setup
+
+from setuptools import find_packages, setup
 
 
 def get_version(filename):

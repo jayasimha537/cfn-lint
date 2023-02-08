@@ -2,28 +2,19 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-import fnmatch
 import json
 import logging
-import multiprocessing
 import os
 import re
 import subprocess
 import warnings
 import zipfile
 from io import BytesIO
-from typing import Dict
 from urllib.request import Request, urlopen
-
-import jsonpatch
 
 import cfnlint
 import cfnlint.data.AdditionalSpecs
-from cfnlint.helpers import (
-    SPEC_REGIONS,
-    get_url_content,
-    url_has_newer_version,
-)
+from cfnlint.helpers import get_url_content
 from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
 
 LOGGER = logging.getLogger(__name__)
@@ -54,7 +45,6 @@ def update_documentation(rules):
     # Read current file up to the Rules part, everything up to that point is
     # static documentation.
     with open(filename, "r", encoding="utf-8") as original_file:
-
         line = original_file.readline()
         while line:
             data.append(line)
@@ -66,7 +56,6 @@ def update_documentation(rules):
 
     # Rebuild the file content
     with open(filename, "w", encoding="utf-8") as new_file:
-
         # Rewrite the static documentation
         for line in data:
             new_file.write(line)

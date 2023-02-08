@@ -13,4 +13,3 @@ class ListSize(CloudFormationLintRule):
     description = "Check lists for the number of items in the list to validate they are between the minimum and maximum"
     source_url = "https://github.com/awslabs/cfn-python-lint/blob/main/docs/cfn-resource-specification.md#allowedpattern"
     tags = ["resources", "property", "list", "size"]
-

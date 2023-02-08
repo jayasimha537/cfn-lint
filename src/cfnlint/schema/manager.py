@@ -4,9 +4,10 @@ import json
 import logging
 import multiprocessing
 import os
-import zipfile
 import re
-from typing import Any, Dict, List, Union
+import sys
+import zipfile
+from typing import Any, Dict, List, Sequence, Union
 
 import jsonpatch
 from pkg_resources import resource_listdir
@@ -18,9 +19,9 @@ from cfnlint.helpers import (
     load_resource,
     url_has_newer_version,
 )
-from cfnlint.schema.schema import Schema
-from cfnlint.schema.patch import SchemaPatch
 from cfnlint.schema.exceptions import ResourceNotFoundError
+from cfnlint.schema.patch import SchemaPatch
+from cfnlint.schema.schema import Schema
 
 LOGGER = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ LOGGER = logging.getLogger(__name__)
 class ProviderSchemaManager:
     _schemas: Dict[str, Schema] = {}
     _provider_schema_modules: Dict[str, Any] = {}
-    _cache: Dict[str, Union[List, str]] = {}
+    _cache: Dict[str, Union[Sequence, str]] = {}
 
     def __init__(self) -> None:
         self._patch_path = os.path.join(
@@ -88,8 +89,8 @@ class ProviderSchemaManager:
                         self._provider_schema_modules[region], filename=(f"{rt}.json")
                     )
                 )
-            except:
-                raise ResourceNotFoundError(resource_type, region)
+            except Exception as e:
+                raise ResourceNotFoundError(resource_type, region) from e
             return self._schemas[region][resource_type]
         return schema
 
@@ -208,7 +209,7 @@ class ProviderSchemaManager:
                                 e,
                             )
 
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             multiprocessing_logger.debug("Issuing updating schemas for %s", region)
 
     def _patch_provider_schema(
@@ -243,8 +244,35 @@ class ProviderSchemaManager:
 
         return content
 
-    def patch(self, patch: SchemaPatch, regions: List[str]) -> None:
-        """Patch the schemas as needed 
+    def patch(self, override_spec_file: str, regions: Sequence[str]):
+        try:
+            filename = override_spec_file
+            with open(filename, encoding="utf-8") as fp:
+                custom_spec_data = json.load(fp)
+
+            for region in regions:
+                self._patch(custom_spec_data, region)
+        except IOError as e:
+            if e.errno == 2:
+                LOGGER.error("Override spec file not found: %s", filename)
+                sys.exit(1)
+            elif e.errno == 21:
+                LOGGER.error(
+                    "Override spec file references a directory, not a file: %s",
+                    filename,
+                )
+                sys.exit(1)
+            elif e.errno == 13:
+                LOGGER.error(
+                    "Permission denied when accessing override spec file: %s", filename
+                )
+                sys.exit(1)
+        except ValueError as err:
+            LOGGER.error("Override spec file %s is malformed: %s", filename, err)
+            sys.exit(1)
+
+    def _patch(self, patch: SchemaPatch, region: str) -> None:
+        """Patch the schemas as needed
 
         Args:
             patch: The patches to be applied to the schemas
@@ -252,43 +280,43 @@ class ProviderSchemaManager:
             None: Returns when completed
         """
 
-        for region in regions:
-            resource_types = []
-            all_resource_types = self.get_resource_types(region)[:]
-            # Remove unsupported resource using includes
-            if patch.included_resource_types:
-                for include in patch.included_resource_types:
-                    regex = re.compile(include.replace("*", "(.*)") + "$")
-                    matches = [
-                        string for string in all_resource_types if re.match(regex, string)
-                    ]
+        resource_types = []
+        all_resource_types = self.get_resource_types(region)[:]
+        # Remove unsupported resource using includes
+        if patch.included_resource_types:
+            for include in patch.included_resource_types:
+                regex = re.compile(include.replace("*", "(.*)") + "$")
+                matches = [
+                    string for string in all_resource_types if re.match(regex, string)
+                ]
 
-                    resource_types.extend(matches)
-            else:
-                resource_types = all_resource_types[:]
+                resource_types.extend(matches)
+        else:
+            resource_types = all_resource_types[:]
 
-            # Remove unsupported resources using the excludes
-            for exclude in patch.excluded_resource_types:
-                regex = re.compile(exclude.replace("*", "(.*)") + "$")
-                matches = [string for string in resource_types if re.match(regex, string)]
-                for match in matches:
-                    resource_types.remove(match)
+        # Remove unsupported resources using the excludes
+        for exclude in patch.excluded_resource_types:
+            regex = re.compile(exclude.replace("*", "(.*)") + "$")
+            matches = [string for string in resource_types if re.match(regex, string)]
+            for match in matches:
+                resource_types.remove(match)
 
-            # Remove unsupported resources
-            for resource in all_resource_types:
-                if resource not in resource_types:
-                    self._cache["RemovedTypes"].append(resource)
-                    del self._schemas[region][resource]
-                    self._cache["ResourceTypes"][region].remove(resource)               
-            
-            for resource_type, patches in patch.patches.items():
-                try:
-                    schema = self.get_resource_schema(resource_type=resource_type, region=region)
-                except ResourceNotFoundError:
-                    # Resource type doesn't exist in this region
-                    continue
-                schema.patch(patches=patches)
+        # Remove unsupported resources
+        for resource in all_resource_types:
+            if resource not in resource_types:
+                self._cache["RemovedTypes"].append(resource)
+                del self._schemas[region][resource]
+                self._cache["ResourceTypes"][region].remove(resource)
 
+        for resource_type, patches in patch.patches.items():
+            try:
+                schema = self.get_resource_schema(
+                    resource_type=resource_type, region=region
+                )
+            except ResourceNotFoundError:
+                # Resource type doesn't exist in this region
+                continue
+            schema.patch(patches=patches)
 
     def get_type_getatts(self, resource_type: str, region: str) -> Dict[str, Dict]:
         """Get the GetAtts for a type in a region
@@ -297,7 +325,7 @@ class ProviderSchemaManager:
             resource_type: The type of the resource. Example: AWS::S3::Bucket
             region: The region to load the resource type from
         Returns:
-            Dict(str, Dict): Returns a Dict where the keys are the attributes and the 
+            Dict(str, Dict): Returns a Dict where the keys are the attributes and the
                 value is the CloudFormation schema description of the attribute
         """
         if resource_type not in self._cache["GetAtts"][region]:
@@ -315,7 +343,7 @@ class ProviderSchemaManager:
             resource_type: The type of the resource. Example: AWS::S3::Bucket
             region: The region to load the resource type from
         Returns:
-            Dict(str, Dict): Returns a Dict where the keys are the Ref property and the 
+            Dict(str, Dict): Returns a Dict where the keys are the Ref property and the
                 value is the CloudFormation schema description of the attribute
         """
         if resource_type not in self._cache["Refs"][region]:

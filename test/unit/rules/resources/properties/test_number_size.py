@@ -11,4 +11,3 @@ from cfnlint.rules.resources.properties.NumberSize import (
 
 class TestNumberSize(BaseRuleTestCase):
     """Test Number Size Property Configuration"""
-

@@ -3,9 +3,11 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
 import itertools
-from typing import Sequence, Mapping
-from cfnlint.rules import CloudFormationLintRule, RuleMatch
+from typing import Mapping, Sequence
+
 from cfnlint.jsonschema import ValidationError
+from cfnlint.rules import CloudFormationLintRule
+
 
 class ListDuplicates(CloudFormationLintRule):
     """Check if duplicates exist in a List"""
@@ -25,7 +27,7 @@ class ListDuplicates(CloudFormationLintRule):
     def _unbool(self, element, true=object(), false=object()):
         if element is True:
             return true
-        elif element is False:
+        if element is False:
             return false
         return element
 
@@ -33,8 +35,7 @@ class ListDuplicates(CloudFormationLintRule):
         if len(one) != len(two):
             return False
         return all(
-            key in two and self._equal(value, two[key])
-            for key, value in one.items()
+            key in two and self._equal(value, two[key]) for key, value in one.items()
         )
 
     def _sequence_equal(self, one, two):
@@ -71,14 +72,13 @@ class ListDuplicates(CloudFormationLintRule):
                 seen.append(e)
         return True
 
+    # pylint: disable=unused-argument
     def uniqueItems(self, validator, uI, instance, schema):
-        if (
-            validator.is_type(instance, "array")
-            and not self._uniq(instance)
-        ):
+        if validator.is_type(instance, "array") and not self._uniq(instance):
             if uI:
                 yield ValidationError(f"{instance!r} has non-unique elements")
             else:
-                yield ValidationError(f"{instance!r} has non-unique elements",
+                yield ValidationError(
+                    f"{instance!r} has non-unique elements",
                     rule=self.child_rules["I3037"],
                 )

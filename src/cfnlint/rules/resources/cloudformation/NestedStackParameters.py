@@ -3,9 +3,10 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
 import os
-from cfnlint.template.template import Template
+
 from cfnlint.decode import decode
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
+from cfnlint.template.template import Template
 
 
 class NestedStackParameters(CloudFormationLintRule):
@@ -26,7 +27,6 @@ class NestedStackParameters(CloudFormationLintRule):
         self.resource_property_types.append("AWS::CloudFormation::Stack")
 
     def __get_template_parameters(self, filename):
-
         try:
             (tmp, matches) = decode.decode(filename)
         except:  # pylint: disable=bare-except
@@ -73,7 +73,6 @@ class NestedStackParameters(CloudFormationLintRule):
 
         return matches
 
-
     def match(self, cfn: Template):
         """Check CloudFormation Properties"""
         matches = []
@@ -110,7 +109,12 @@ class NestedStackParameters(CloudFormationLintRule):
                                     self.__compare_objects(
                                         template_parameters=template_parameters,
                                         nested_parameters=nested_parameters,
-                                        path=["Resources", resource_name, "Properties", "Parameters"],
+                                        path=[
+                                            "Resources",
+                                            resource_name,
+                                            "Properties",
+                                            "Parameters",
+                                        ],
                                         scenario=parameter_group.get("Scenario"),
                                     )
                                 )

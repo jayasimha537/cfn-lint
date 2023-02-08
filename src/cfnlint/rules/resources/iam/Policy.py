@@ -5,8 +5,8 @@ SPDX-License-Identifier: MIT-0
 import json
 from datetime import date
 
-from cfnlint.helpers import FUNCTIONS_SINGLE
 from cfnlint.decode.node import convert_dict
+from cfnlint.helpers import FUNCTIONS_SINGLE
 from cfnlint.rules import CloudFormationLintRule, RuleMatch
 
 

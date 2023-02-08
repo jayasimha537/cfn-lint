@@ -1,12 +1,10 @@
-from functools import lru_cache
-from typing import Dict, Sequence, Union, List, Optional, Iterable, Tuple
-import json
-from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER, ResourceNotFoundError
+from typing import Dict, Iterable, List, Optional, Tuple, Union
+
 from cfnlint.helpers import RegexDict
+from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER, ResourceNotFoundError
 
 
 class GetAtts:
-
     # [region][resource_name][attribute][JsonSchema Dict]
     _getatts: Dict[str, Dict[str, RegexDict]]
 
@@ -30,16 +28,14 @@ class GetAtts:
                     self._getatts[region][f"{resource_name}.*"] = RegexDict()
                     self._getatts[region][f"{resource_name}.*"][".*"] = {}
                     continue
-                
+
                 self._getatts[region][resource_name] = RegexDict()
 
                 if resource_type.startswith(self._astrik_string_types):
                     self._getatts[region][resource_name]["Outputs..*"] = {
                         "type": "string"
                     }
-                elif resource_type.startswith(
-                    self._astrik_unknown_types
-                ):
+                elif resource_type.startswith(self._astrik_unknown_types):
                     self._getatts[region][resource_name][".*"] = {}
                 else:
                     try:
@@ -54,7 +50,6 @@ class GetAtts:
                         continue
 
     def json_schema(self, region: str) -> Dict:
-
         schema = {"oneOf": []}
         schema_strings = {
             "type": "string",
@@ -120,7 +115,7 @@ class GetAtts:
 
         if isinstance(getatt, list):
             if len(getatt) != 2:
-                raise (TypeError("Invalid GetAtt size"))
+                raise TypeError("Invalid GetAtt size")
 
             try:
                 result = self._getatts.get(region, {}).get(getatt[0], {}).get(getatt[1])
@@ -131,7 +126,7 @@ class GetAtts:
                 raise e
 
         else:
-            raise (TypeError("Invalid GetAtt structure"))
+            raise TypeError("Invalid GetAtt structure")
 
     def items(self, region: Optional[str] = None) -> Iterable[Tuple[str, Dict]]:
         if region is None:

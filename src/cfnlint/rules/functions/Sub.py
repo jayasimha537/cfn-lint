@@ -139,15 +139,13 @@ class Sub(CloudFormationLintRule):
                         matches.append(
                             RuleMatch(
                                 tree,
-                                message.format(
-                                    parameter, "/".join(map(str, tree))
-                                ),
+                                message.format(parameter, "/".join(map(str, tree))),
                             )
                         )
                     found = True
                 except (ValueError, TypeError):
                     pass
-            
+
             if not found:
                 message = "Parameter {0} for Fn::Sub not found at {1}"
                 matches.append(

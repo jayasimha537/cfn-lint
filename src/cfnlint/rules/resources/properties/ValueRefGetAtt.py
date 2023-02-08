@@ -2,10 +2,8 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-import warnings
-import cfnlint.helpers
-from cfnlint.rules import CloudFormationLintRule, RuleMatch
-from cfnlint.schema.manager import PROVIDER_SCHEMA_MANAGER
+from cfnlint.rules import CloudFormationLintRule
+
 
 class ValueRefGetAtt(CloudFormationLintRule):
     """Check if Resource Properties are correct"""
@@ -23,6 +21,6 @@ class ValueRefGetAtt(CloudFormationLintRule):
         self.cfn = cfn
         return super().initialize(cfn)
 
+    # pylint: disable=unused-argument
     def awsType(self, validator, uI, instance, schema):
         pass
-    

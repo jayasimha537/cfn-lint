@@ -3,8 +3,10 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
 import re
-from cfnlint.rules import CloudFormationLintRule
+
 from cfnlint.jsonschema import ValidationError
+from cfnlint.rules import CloudFormationLintRule
+
 
 class Properties(CloudFormationLintRule):
     """Check Base Resource Configuration"""
@@ -30,13 +32,13 @@ class Properties(CloudFormationLintRule):
                     yield from validator.descend(
                         v[0],
                         schema,
-                        path=k[0] if len(k) > 0 else p,
+                        path=k[0] if len(k) > 0 else "Fn::If",
                         schema_path=None,
                     )
                     yield from validator.descend(
                         v[1],
                         schema,
-                        path=k[0] if len(k) > 0 else p,
+                        path=k[0] if len(k) > 0 else "Fn::If",
                         schema_path=None,
                     )
                 return

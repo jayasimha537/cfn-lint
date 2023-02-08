@@ -2,8 +2,9 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-from cfnlint.rules import CloudFormationLintRule
 from cfnlint.jsonschema import ValidationError
+from cfnlint.rules import CloudFormationLintRule
+
 
 class OnlyOne(CloudFormationLintRule):
     """Check Properties Resource Configuration"""
@@ -34,7 +35,8 @@ class OnlyOne(CloudFormationLintRule):
             )
 
         more_valid = [
-            each for _, each in subschemas
+            each
+            for _, each in subschemas
             if validator.evolve(schema=each).is_valid(instance)
         ]
         if more_valid:

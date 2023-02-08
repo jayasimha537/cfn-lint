@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT-0
 import logging
 import re
 from copy import copy, deepcopy
-import warnings
+
 import cfnlint.conditions
 import cfnlint.helpers
 from cfnlint.graph import Graph

@@ -2,8 +2,9 @@
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 SPDX-License-Identifier: MIT-0
 """
-from jsonschema import Draft7Validator
 from test.unit.rules import BaseRuleTestCase
+
+from jsonschema import Draft7Validator
 
 from cfnlint.rules.resources.properties.Properties import (
     Properties,  # pylint: disable=E0401

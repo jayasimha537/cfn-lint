@@ -13,4 +13,3 @@ class NumberSize(CloudFormationLintRule):
     description = "Check numbers (integers and floats) for its value being between the minimum and maximum"
     source_url = "https://github.com/awslabs/cfn-python-lint/blob/main/docs/cfn-resource-specification.md#allowedpattern"
     tags = ["resources", "property", "number", "size"]
-
