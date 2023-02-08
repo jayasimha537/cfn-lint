@@ -1,4 +1,8 @@
-from typing import Dict, Mapping, Sequence, Union
+"""
+Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+SPDX-License-Identifier: MIT-0
+"""
+from typing import Dict
 
 
 def resolve_pointer(obj, pointer) -> Dict:
@@ -33,34 +37,10 @@ class SchemaPointer:
             except KeyError as e:
                 raise e
 
+        if "*" in self.parts:
+            return {"type": "array", "items": obj}
+
         return obj
-
-    def get_part(self, doc: Dict, part: str) -> Union[str, int]:
-        """Returns the next step in the correct type
-
-        Args:
-            doc (dict): the object to evaluate for the part
-            part (str): the string representation of the part
-        Returns:
-            str, int: returns the updated part
-        """
-
-        if isinstance(doc, Mapping):
-            return part
-
-        if isinstance(doc, Sequence):
-            if part == "-":
-                return part
-
-            return int(part)
-
-        if hasattr(doc, "__getitem__"):
-            return part
-
-        raise KeyError(
-            f"Document '{type(doc)}' does not support indexing, "
-            "must be mapping/sequence or support __getitem__"
-        )
 
     def walk(self, obj: Dict, part: str) -> Dict:
         """Walks one step in doc and returns the referenced part
@@ -71,16 +51,7 @@ class SchemaPointer:
         Returns:
             Dict: returns the object at the part
         """
-
-        part = self.get_part(obj, part)
         assert hasattr(obj, "__getitem__"), f"invalid document type {type(obj)}"
-
-        if isinstance(obj, Sequence):
-            try:
-                return obj[part]
-
-            except IndexError as e:
-                raise KeyError(f"index '{part}' is out of bounds") from e
 
         try:
             # using a test for typeName as that is a root schema property

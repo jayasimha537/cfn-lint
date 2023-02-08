@@ -31,11 +31,10 @@ class TestExclude(BaseTestCase):
         """Success test"""
         filename = "test/fixtures/templates/good/generic.yaml"
         template = self.load_template(filename)
-        with open("test/fixtures/templates/override_spec/exclude.json") as fp:
-            p = json.load(fp)
-            schema_patch = SchemaPatch.from_dict(p)
 
-        PROVIDER_SCHEMA_MANAGER._patch(schema_patch, region=self.region)
+        PROVIDER_SCHEMA_MANAGER.patch(
+            "test/fixtures/templates/override_spec/exclude.json", regions=[self.region]
+        )
 
         good_runner = Runner(self.collection, filename, template, [self.region], [])
         self.assertEqual([], good_runner.run())
@@ -45,11 +44,9 @@ class TestExclude(BaseTestCase):
         filename = "test/fixtures/templates/bad/override/exclude.yaml"
         template = self.load_template(filename)
 
-        with open("test/fixtures/templates/override_spec/exclude.json") as fp:
-            p = json.load(fp)
-            schema_patch = SchemaPatch.from_dict(p)
-
-        PROVIDER_SCHEMA_MANAGER._patch(schema_patch, region=self.region)
+        PROVIDER_SCHEMA_MANAGER.patch(
+            "test/fixtures/templates/override_spec/exclude.json", regions=[self.region]
+        )
 
         bad_runner = Runner(self.collection, filename, template, [self.region], [])
         errs = bad_runner.run()

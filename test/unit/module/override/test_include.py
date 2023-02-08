@@ -31,11 +31,9 @@ class TestInclude(BaseTestCase):
         filename = "test/fixtures/templates/bad/override/include.yaml"
         template = self.load_template(filename)
 
-        with open("test/fixtures/templates/override_spec/include.json") as fp:
-            p = json.load(fp)
-            schema_patch = SchemaPatch.from_dict(p)
-
-        PROVIDER_SCHEMA_MANAGER._patch(schema_patch, region=self.region)
+        PROVIDER_SCHEMA_MANAGER.patch(
+            "test/fixtures/templates/override_spec/include.json", regions=[self.region]
+        )
 
         bad_runner = Runner(self.collection, filename, template, [self.region], [])
         errs = bad_runner.run()

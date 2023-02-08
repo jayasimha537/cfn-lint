@@ -37,11 +37,9 @@ class TestComplete(BaseTestCase):
         filename = "test/fixtures/templates/good/override/complete.yaml"
         template = self.load_template(filename)
 
-        with open("test/fixtures/templates/override_spec/complete.json") as fp:
-            p = json.load(fp)
-            schema_patch = SchemaPatch.from_dict(p)
-
-        PROVIDER_SCHEMA_MANAGER._patch(schema_patch, region=self.region)
+        PROVIDER_SCHEMA_MANAGER.patch(
+            "test/fixtures/templates/override_spec/complete.json", regions=[self.region]
+        )
 
         good_runner = Runner(self.collection, filename, template, [self.region], [])
         self.assertEqual([], good_runner.run())
@@ -51,11 +49,9 @@ class TestComplete(BaseTestCase):
         filename = "test/fixtures/templates/bad/override/complete.yaml"
         template = self.load_template(filename)
 
-        with open("test/fixtures/templates/override_spec/complete.json") as fp:
-            p = json.load(fp)
-            schema_patch = SchemaPatch.from_dict(p)
-
-        PROVIDER_SCHEMA_MANAGER._patch(schema_patch, region=self.region)
+        PROVIDER_SCHEMA_MANAGER.patch(
+            "test/fixtures/templates/override_spec/complete.json", regions=[self.region]
+        )
 
         bad_runner = Runner(self.collection, filename, template, [self.region], [])
         errs = bad_runner.run()

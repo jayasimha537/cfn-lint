@@ -1,3 +1,7 @@
+"""
+Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+SPDX-License-Identifier: MIT-0
+"""
 from copy import deepcopy
 from typing import Dict, List, Tuple
 
@@ -72,22 +76,6 @@ class Schema:
             None: Returns when the patches have been applied
         """
         jsonpatch.JsonPatch(patches).apply(self._json_schema, in_place=True)
-
-    def get_ref(self) -> Dict[str, dict]:
-        """Get the ref schema
-
-        Args:
-        Returns:
-            Dict: Dict of json schema for the Ref
-        """
-        attrs = {}
-        for ro_attr in self.schema.get("readOnlyProperties", []):
-            try:
-                attrs.update(self._flatten_getatts(ro_attr)[0].items())
-            except KeyError:
-                pass
-
-        return attrs
 
     def get_atts(self) -> Dict[str, dict]:
         """Get the valid GetAtts for this schema. Schemas are defined in property

@@ -4,11 +4,13 @@ from typing import TYPE_CHECKING, List, Union
 
 from jsonschema import exceptions
 
+from cfnlint.jsonschema._utils import Unset
+
 if TYPE_CHECKING:
     from cfnlint.rules import CloudFormationLintRule
 
 
-_unset = "<unset>"
+_unset = Unset()
 
 
 class ValidationError(exceptions.ValidationError):

@@ -1,3 +1,7 @@
+"""
+Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+SPDX-License-Identifier: MIT-0
+"""
 import filecmp
 import fnmatch
 import json
@@ -177,17 +181,18 @@ class ProviderSchemaManager:
                 with open(f"{directory}{filename}", "r+", encoding="utf-8") as fh:
                     spec = json.load(fh)
                     spec = self._patch_provider_schema(spec, filename, "all")
-
                     # Back to zero to write spec
                     fh.seek(0)
-                    json.dump(spec, fh, indent=1, separators=(",", ": "))
+                    json.dump(
+                        spec, fh, indent=1, separators=(",", ": "), sort_keys=True
+                    )
                     # Resize doc as needed
                     fh.truncate()
 
             # if the region is not us-east-1 compare the files to those in us-east-1
             # symlink if the files are the same
             if region != "us-east-1":
-                directory_us_east_1 = os.path.join(f"${self._root_path}/us-east-1/")
+                directory_us_east_1 = os.path.join(f"{self._root_path}/us-east-1/")
                 for filename in os.listdir(directory):
                     if filename != "__init__.py":
                         try:
@@ -215,7 +220,7 @@ class ProviderSchemaManager:
     def _patch_provider_schema(
         self, content: Dict, source_filename: str, region: str
     ) -> Dict:
-        """Provides the logic to patch a CloudFormat provider schema file.
+        """Provides the logic to patch a CloudFormation provider schema file.
 
         Args:
             content: A Dict representing the data that needs to be patched
@@ -244,14 +249,13 @@ class ProviderSchemaManager:
 
         return content
 
-    def patch(self, override_spec_file: str, regions: Sequence[str]):
+    def patch(self, filename: str, regions: Sequence[str]):
         try:
-            filename = override_spec_file
             with open(filename, encoding="utf-8") as fp:
                 custom_spec_data = json.load(fp)
-
-            for region in regions:
-                self._patch(custom_spec_data, region)
+                schema_patch = SchemaPatch.from_dict(custom_spec_data)
+                for region in regions:
+                    self._patch(schema_patch, region)
         except IOError as e:
             if e.errno == 2:
                 LOGGER.error("Override spec file not found: %s", filename)
@@ -335,27 +339,6 @@ class ProviderSchemaManager:
             ].get_atts()
 
         return self._cache["GetAtts"][region][resource_type]
-
-    def get_type_refs(self, resource_type: str, region: str) -> Dict[str, Dict]:
-        """Get the Ref for a type in a region
-
-        Args:
-            resource_type: The type of the resource. Example: AWS::S3::Bucket
-            region: The region to load the resource type from
-        Returns:
-            Dict(str, Dict): Returns a Dict where the keys are the Ref property and the
-                value is the CloudFormation schema description of the attribute
-        """
-        if resource_type not in self._cache["Refs"][region]:
-            self.get_resource_schema(region=region, resource_type=resource_type)
-            self._cache["Refs"][region][resource_type] = self._schemas[region][
-                resource_type
-            ].get_ref()
-
-        return self._cache["Refs"][region][resource_type]
-
-    def update_schemas(self, force: bool):
-        pass
 
 
 PROVIDER_SCHEMA_MANAGER: ProviderSchemaManager = ProviderSchemaManager()

@@ -80,16 +80,6 @@ class TypeChecker:
     between the defined JSON Schema types and some associated Python types or
     objects.
 
-    Modifying the behavior just mentioned by redefining which Python objects
-    are considered to be of which JSON Schema types can be done using
-    `TypeChecker.redefine` or `TypeChecker.redefine_many`, and types can be
-    removed via `TypeChecker.remove`. Each of these return a new `TypeChecker`.
-
-    Arguments:
-
-        type_checkers:
-
-            The initial mapping of types to their checking functions.
     """
 
     _type_checkers: PMap[
@@ -130,63 +120,6 @@ class TypeChecker:
             raise UndefinedTypeCheck(t) from None
 
         return fn(self, instance)
-
-    def redefine(self, t: str, fn) -> "TypeChecker":
-        """
-        Produce a new checker with the given type redefined.
-
-        Arguments:
-
-            t:
-
-                The name of the type to check.
-
-            fn (collections.abc.Callable):
-
-                A callable taking exactly two parameters - the type
-                checker calling the function and the instance to check.
-                The function should return true if instance is of this
-                type and false otherwise.
-        """
-        return self.redefine_many({t: fn})
-
-    def redefine_many(self, definitions=()) -> "TypeChecker":
-        """
-        Produce a new checker with the given types redefined.
-
-        Arguments:
-
-            definitions (dict):
-
-                A dictionary mapping types to their checking functions.
-        """
-        type_checkers = self._type_checkers.update(definitions)
-        return attr.evolve(self, type_checkers=type_checkers)
-
-    def remove(self, *types) -> "TypeChecker":
-        """
-        Produce a new checker with the given types forgotten.
-
-        Arguments:
-
-            types:
-
-                the names of the types to remove.
-
-        Raises:
-
-            `jsonschema.exceptions.UndefinedTypeCheck`:
-
-                if any given type is unknown to this object
-        """
-
-        type_checkers = self._type_checkers
-        for each in types:
-            try:
-                type_checkers = type_checkers.remove(each)
-            except KeyError as e:
-                raise UndefinedTypeCheck(each) from e
-        return attr.evolve(self, type_checkers=type_checkers)
 
 
 cfn_type_checker = TypeChecker(

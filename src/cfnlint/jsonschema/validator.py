@@ -1,16 +1,7 @@
 from __future__ import annotations
 
 import reprlib
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Mapping,
-    Optional,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional
 
 import attr
 from jsonschema import exceptions
@@ -29,8 +20,6 @@ def _id_of(schema):
     """
     Return the ID of a schema for recent JSON Schema drafts.
     """
-    if schema is True or schema is False:
-        return ""
     return schema.get("$id", "")
 
 
@@ -41,13 +30,13 @@ _cfn_validators: Dict[str, Callable[[Any, Any, Any, Any], Any]] = {
     "allOf": _validators.allOf,
     "anyOf": _validators.anyOf,
     "const": _validators.const,
-    "contains": _validators.contains_draft6_draft7,
-    "dependencies": _validators.dependencies_draft4_draft6_draft7,
+    "contains": _validators.contains,
+    "dependencies": _validators.dependencies,
     "enum": _validators.enum,
     "exclusiveMaximum": _validators.exclusiveMaximum,
     "exclusiveMinimum": _validators.exclusiveMinimum,
     "if": _validators.if_,
-    "items": _validators.items_draft6_draft7_draft201909,
+    "items": _validators.items,
     "maxItems": _validators.maxItems,
     "maxLength": _validators.maxLength,
     "maxProperties": _validators.maxProperties,
@@ -143,24 +132,12 @@ def create(
         resolver = attr.ib(default=None, repr=False)
         format_checker = attr.ib(default=None)
 
-        def __init__(
-            self,
-            schema: Mapping,
-            resolver: Union[RefResolver, None] = None,
-            format_checker: None = None,
-        ) -> None:
-            pass
-
         def __attrs_post_init__(self):
             if self.resolver is None:
                 self.resolver = RefResolver.from_schema(
                     self.schema,
                     id_of=_id_of,
                 )
-
-        @classmethod
-        def check_schema(cls, schema: Mapping) -> None:
-            pass
 
         def is_type(self, instance: Any, t: str) -> bool:
             """
@@ -212,65 +189,43 @@ def create(
             """
             _schema = self.schema
 
-            if _schema is True:
-                return
-            if _schema is False:
-                yield ValidationError(
-                    f"False schema does not allow {instance!r}",
-                    validator=None,
-                    validator_value=None,
-                    instance=instance,
-                    schema=_schema,
-                )
-                return
+            if self.is_type(instance, "object"):
+                if len(instance) == 1:
+                    for k, v in instance.items():
+                        # if the element is a condition lets evaluate both the
+                        # true and false paths of the condition
+                        if k == "Fn::If":
+                            if len(v) == 3:
+                                # just need to evaluate the second and third element
+                                # in the list
+                                for i in range(1, 3):
+                                    for error in self.iter_errors(instance=v[i]):
+                                        # add the paths for the elements we have removed
+                                        error.path.appendleft(i)
+                                        error.path.appendleft("Fn::If")
+                                        yield error
+                            return
+                        if k == "Ref":
+                            if v == "AWS::NoValue":
+                                # This is equivalent to an empty object
+                                instance = {}
+            for k, v in applicable_validators(_schema):
+                validator = self.VALIDATORS.get(k)
+                if validator is None:
+                    continue
 
-            scope = _id_of(_schema)
-            if scope:
-                self.resolver.push_scope(scope)
-            try:
-                if self.is_type(instance, "object"):
-                    if len(instance) == 1:
-                        for k, v in instance.items():
-                            # if the element is a condition lets evaluate both the
-                            # true and false paths of the condition
-                            if k == "Fn::If":
-                                if len(v) == 3:
-                                    # just need to evaluate the second and third element
-                                    # in the list
-                                    for i in range(1, 3):
-                                        for error in self.iter_errors(instance=v[i]):
-                                            # add the paths for the elements we have removed
-                                            error.path.appendleft(i)
-                                            error.path.appendleft("Fn::If")
-                                            yield error
-                                return
-                            if k == "Ref":
-                                if v == "AWS::NoValue":
-                                    # This is equivalent to an empty object
-                                    instance = {}
-                for k, v in applicable_validators(_schema):
-                    validator = self.VALIDATORS.get(k)
-                    if validator is None:
-                        continue
-
-                    errors = validator(self, v, instance, _schema) or ()
-                    for error in errors:
-                        # set details if not already set by the called fn
-                        if error is None:
-                            continue
-                        error.set(
-                            validator=k,
-                            validator_value=v,
-                            instance=instance,
-                            schema=_schema,
-                            type_checker=self.TYPE_CHECKER,
-                        )
-                        if k not in {"if", "$ref"}:
-                            error.schema_path.appendleft(k)
-                        yield error
-            finally:
-                if scope:
-                    self.resolver.pop_scope()
+                errors = validator(self, v, instance, _schema) or ()
+                for error in errors:
+                    error.set(
+                        validator=k,
+                        validator_value=v,
+                        instance=instance,
+                        schema=_schema,
+                        type_checker=self.TYPE_CHECKER,
+                    )
+                    if k not in {"if", "$ref"}:
+                        error.schema_path.appendleft(k)
+                    yield error
 
         def validate(self, instance: Any) -> None:
             """
